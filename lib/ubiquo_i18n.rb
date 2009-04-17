@@ -1,1 +1,1 @@
-# UbiquoI18n
+require 'ubiquo_authentication/extensions.rb'

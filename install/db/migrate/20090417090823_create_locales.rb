@@ -2,6 +2,9 @@ class CreateLocales < ActiveRecord::Migration
   def self.up
     create_table :locales do |t|
       t.string :iso_code
+      t.string :english_name
+      t.string :native_name
+      t.boolean :is_active, :default => false
     end
   end
 

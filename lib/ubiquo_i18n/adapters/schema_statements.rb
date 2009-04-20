@@ -10,7 +10,7 @@ module UbiquoI18n
           yield table_definition
           if translatable
             table_definition.string :locale, :nil => false
-            table_definition.content_id
+            table_definition.content_id table_name
           end
         end
       end

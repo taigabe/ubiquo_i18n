@@ -5,6 +5,7 @@ module UbiquoI18n
       def self.append_features(base)
         super
         base.extend(ClassMethods)
+        base.send :include, InstanceMethods
       end
 
       module ClassMethods
@@ -22,10 +23,10 @@ module UbiquoI18n
           @translatable_attributes += attrs
 
           # add locale relation
-#          self.belongs_to(:locale, {
-#                          :foreign_key => :locale,
-#                          :class_name => "::Locale"
-#                        }) unless self.reflections[:locale]
+          #          self.belongs_to(:locale, {
+          #                          :foreign_key => :locale,
+          #                          :class_name => "::Locale"
+          #                        }) unless self.reflections[:locale]
 
           if instance_methods.include?('locale=')
             # give the proper behaviour to the locale setter
@@ -33,15 +34,49 @@ module UbiquoI18n
 
             define_method('locale=') do |locale|
               locale = case locale
-                       when String
-                         locale
-                       else
-                         locale.iso_code if locale.respond_to?(:iso_code)
-                       end
+              when String
+                locale
+              else
+                locale.iso_code if locale.respond_to?(:iso_code)
+              end
               set_locale locale
             end
           end
         end
+      end
+      
+      module InstanceMethods
+        
+        def self.included(klass)
+          klass.alias_method_chain :create, :i18n_content_id
+          klass.alias_method_chain :create, :locale
+        
+        end
+        
+        # proxy to add a new content_id if empty on creation
+        def create_with_i18n_content_id
+          if self.class.instance_variable_get('@translatable_attributes')
+            # we do this even if there is not currently any tr. attribute, 
+            # as long as @translatable_attributes is defined
+            unless self.content_id
+              self.content_id = self.class.connection.next_val_sequence("#{self.class.to_s.tableize}_content_id")
+            end
+          end
+          create_without_i18n_content_id
+        end
+
+        # proxy to add a new content_id if empty on creation
+        def create_with_locale
+          if self.class.instance_variable_get('@translatable_attributes')
+            # we do this even if there is not currently any tr. attribute, 
+            # as long as @translatable_attributes is defined
+            unless self.locale
+              self.locale = Locale.current
+            end
+          end
+          create_without_locale
+        end
+        
       end
 
     end

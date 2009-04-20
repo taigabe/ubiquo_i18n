@@ -48,21 +48,21 @@ module UbiquoI18n
       module InstanceMethods
         
         def self.included(klass)
-          klass.alias_method_chain :create, :content_id
+          klass.alias_method_chain :create, :i18n_content_id
           klass.alias_method_chain :create, :locale
         
         end
         
         # proxy to add a new content_id if empty on creation
-        def create_with_content_id
+        def create_with_i18n_content_id
           if self.class.instance_variable_get('@translatable_attributes')
             # we do this even if there is not currently any tr. attribute, 
             # as long as @translatable_attributes is defined
             unless self.content_id
-              self.content_id = self.class.connection.next_val_sequence("#{self.class.to_s}_content_id")
+              self.content_id = self.class.connection.next_val_sequence("#{self.class.to_s.tableize}_content_id")
             end
           end
-          create_without_content_id
+          create_without_i18n_content_id
         end
 
         # proxy to add a new content_id if empty on creation

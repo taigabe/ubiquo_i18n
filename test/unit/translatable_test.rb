@@ -95,7 +95,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
       attr_accessor :content_id
       translatable
     end
-    ActiveRecord::Base.connection.create_sequence('locale_content_id')
+    ActiveRecord::Base.connection.create_sequence('locales_content_id')
   end
   
 end

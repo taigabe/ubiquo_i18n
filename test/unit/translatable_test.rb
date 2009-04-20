@@ -66,6 +66,22 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     end      
   end
 
+  def test_should_add_current_locale_on_create_if_empty
+    locale_as_translatable_model
+    assert_difference 'Locale.count' do
+      locale = create_locale(:iso_code => 'ca')
+      assert_equal Locale.current, locale.locale
+    end  
+  end
+  
+  def test_should_not_add_current_locale_on_create_if_exists
+    locale_as_translatable_model
+    assert_difference 'Locale.count' do
+      locale = create_locale(:iso_code => 'ca', :locale => 'ca')
+      assert_equal 'ca', locale.locale
+    end      
+  end
+
   private
     
   def create_ar(options = {})

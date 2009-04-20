@@ -48,8 +48,8 @@ module UbiquoI18n
       module InstanceMethods
         
         def self.included(klass)
-          #require 'ruby-debug';debugger
           klass.alias_method_chain :create, :content_id
+          klass.alias_method_chain :create, :locale
         
         end
         
@@ -64,8 +64,20 @@ module UbiquoI18n
           end
           create_without_content_id
         end
-      end
 
+        # proxy to add a new content_id if empty on creation
+        def create_with_locale
+          if self.class.instance_variable_get('@translatable_attributes')
+            # we do this even if there is not currently any tr. attribute, 
+            # as long as @translatable_attributes is defined
+            unless self.locale
+              self.locale = Locale.current
+            end
+          end
+          create_without_locale
+        end
+        
+      end
 
     end
   end

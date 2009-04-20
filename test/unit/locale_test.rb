@@ -26,4 +26,9 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
     end
   end
     
+  def test_should_get_current_locale
+    Ubiquo::Config.context(:ubiquo_i18n).set(:current_locale, 'test')
+    assert_equal 'test', Locale.current    
+  end
+      
 end

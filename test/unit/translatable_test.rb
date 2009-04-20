@@ -36,32 +36,50 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
 #  end
 #
   def test_should_store_locale
-    # For this test, we will make locale itself translatable, since we need an existing AR
-    Locale.class_eval do
-      attr_accessor :locale
-      translatable
-    end
+    locale_as_translatable_model
     locale = create_locale(:iso_code => 'ca', :locale => 'ca')
     assert String === locale.locale
     assert_equal locale.iso_code, locale.locale
   end
 
   def test_should_store_string_locale_in_dual_format
-    # For this test, we will make locale itself translatable, since we need an existing AR
-    Locale.class_eval do
-      attr_accessor :locale
-      translatable
-    end
+    locale_as_translatable_model
     locale = create_locale(:iso_code => 'ca', :locale => 'ca')
     new_locale = create_locale(:iso_code => 'en', :locale => locale)    
     assert_equal 'ca', new_locale.locale
     assert_equal locale.iso_code, locale.locale
+  end
+  
+  def test_should_add_content_id_on_create_if_empty
+    locale_as_translatable_model
+    assert_difference 'Locale.count' do
+      locale = create_locale(:iso_code => 'ca')
+      assert_not_nil locale.content_id
+    end  
+  end
+  
+  def test_should_not_add_content_id_on_create_if_exists
+    locale_as_translatable_model
+    assert_difference 'Locale.count' do
+      locale = create_locale(:iso_code => 'ca', :content_id => 12)
+      assert_equal 12, locale.content_id
+    end      
   end
 
   private
     
   def create_ar(options = {})
     Class.new(ActiveRecord::Base)
+  end
+  
+  def locale_as_translatable_model
+    # For some tests, we will make locale itself translatable, since we need an existing AR
+    Locale.class_eval do
+      attr_accessor :locale
+      attr_accessor :content_id
+      translatable
+    end
+    ActiveRecord::Base.connection.create_sequence('locale_content_id')
   end
   
 end

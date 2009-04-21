@@ -47,6 +47,28 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal %w{es en}, TestModel.locale(:ALL, 'en').map(&:locale)
   end
   
+  def test_search_by_content
+    create_model(:content_id => 1, :locale => 'es')
+    create_model(:content_id => 1, :locale => 'ca')
+    create_model(:content_id => 2, :locale => 'es')
+    create_model(:content_id => 2, :locale => 'en')
+    
+    assert_equal %w{es ca}, TestModel.content(1).map(&:locale)
+    assert_equal %w{es ca es en}, TestModel.content(1, 2).map(&:locale)
+  end
+  
+  def test_search_by_content_and_locale
+    create_model(:content_id => 1, :locale => 'es')
+    create_model(:content_id => 1, :locale => 'ca')
+    create_model(:content_id => 2, :locale => 'es')
+    create_model(:content_id => 2, :locale => 'en')
+    
+    assert_equal %w{es}, TestModel.locale('es').content(1).map(&:locale)
+    assert_equal %w{ca en}, TestModel.content(1, 2).locale('ca', 'en').map(&:locale)
+    assert_equal %w{ca es}, TestModel.content(1, 2).locale('ca', 'es').map(&:locale)
+    assert_equal %w{}, TestModel.content(1).locale('en').map(&:locale)
+  end
+  
   private
       
   def create_model(options = {})

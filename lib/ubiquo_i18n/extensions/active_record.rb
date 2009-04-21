@@ -56,6 +56,10 @@ module UbiquoI18n
                 "ORDER BY #{ ["content_id", locales_string].compact.join(", ")})", *[(all_locales ? nil : locales), *locales].compact]
             }
           }
+          named_scope :content, lambda{|*content_ids|
+            {:conditions => {:content_id => content_ids}}
+          }
+
         end
       end
       

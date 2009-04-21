@@ -25,6 +25,14 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
       assert l.errors.on(:iso_code)
     end
   end
+  
+  def test_should_use_different_locale
+    Locale.current = 'en'
+    Locale.using_locale('es') do
+      assert_equal 'es', Locale.current
+    end
+    assert_equal 'en', Locale.current
+  end
     
   def test_should_get_current_locale
     Ubiquo::Config.context(:ubiquo_i18n).set(:current_locale, 'test')

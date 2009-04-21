@@ -43,7 +43,13 @@ module UbiquoI18n
             end
           end
           
-          
+          # usage:
+          # find all content in any locale: Model.locale(:ALL)
+          # find spanish content: Model.locale('es')
+          # find spanish or english content. If spanish and english exists, gets the spanish version. Model.locale('es', 'en')
+          # find all content in spanish or any other locale if spanish dosn't exist: Model.locale('es', :ALL)
+          # find all content in any locale: Model.locale(:ALL)
+          #
           named_scope :locale, lambda{|*locales|
             locales = [Locale.current] if locales.size == 0
             all_locales = locales.delete(:ALL)
@@ -56,6 +62,10 @@ module UbiquoI18n
                 "ORDER BY #{ ["content_id", locales_string].compact.join(", ")})", *[(all_locales ? nil : locales), *locales].compact]
             }
           }
+          
+          # usage:
+          # find all items of one content: Model.content(1).first
+          # find all items of some contents: Model.content(1,2,3)
           named_scope :content, lambda{|*content_ids|
             {:conditions => {:content_id => content_ids}}
           }

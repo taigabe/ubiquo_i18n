@@ -2,10 +2,6 @@ require File.dirname(__FILE__) + "/../test_helper.rb"
 
 class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
 
-  def setup
-#     create_ar_test_backend
-#     set_test_model_as_translatable
-  end
   
   def test_simple_filter
     create_model(:content_id => 1, :locale => 'es')
@@ -73,21 +69,6 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
       
   def create_model(options = {})
     TestModel.create(options)
-  end
-
-  def create_ar_test_backend
-    # Creates a test table for AR things work properly
-    if ActiveRecord::Base.connection.tables.include?("test_models")
-      ActiveRecord::Base.connection.drop_table :test_models
-    end
-    ActiveRecord::Base.connection.create_table :test_models, :translatable => true do
-    end
-  end
-  
-  def set_test_model_as_translatable
-    TestModel.class_eval do
-      translatable
-    end
   end
 end
 

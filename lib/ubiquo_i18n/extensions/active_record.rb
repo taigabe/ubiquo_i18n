@@ -42,6 +42,21 @@ module UbiquoI18n
               set_locale locale
             end
           end
+          
+          
+          named_scope :locale, lambda{|locales|
+            locales ||= [Locale.current]
+            locales = [locales].flatten
+            all_locales = locales.delete(:ALL)
+            locales_string = locales.size > 0 ? (["locale != ?"]*(locales.size)).join(", ") : nil
+            {
+              :conditions => ["#{self.table_name}.id in (" +
+                "SELECT distinct on (content_id) id " + 
+                "FROM #{self.table_name} " +
+                (all_locales ? "" : "WHERE #{self.table_name}.locale in (?)") +
+                "ORDER BY #{ ["content_id", locales_string].compact.join(", ")})", *[(all_locales ? nil : locales), *locales].compact]
+            }
+          }
         end
       end
       

@@ -7,3 +7,7 @@ def create_locale(options = {})
   Locale.create(default_options.merge(options))
 end
 
+case conn = ActiveRecord::Base.connection
+when ActiveRecord::ConnectionAdapters::AbstractAdapter
+  conn.client_min_messages = "ERROR"
+end

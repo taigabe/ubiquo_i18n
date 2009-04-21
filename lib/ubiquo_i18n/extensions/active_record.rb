@@ -44,9 +44,8 @@ module UbiquoI18n
           end
           
           
-          named_scope :locale, lambda{|locales|
-            locales ||= [Locale.current]
-            locales = [locales].flatten
+          named_scope :locale, lambda{|*locales|
+            locales = [Locale.current] if locales.size == 0
             all_locales = locales.delete(:ALL)
             locales_string = locales.size > 0 ? (["locale != ?"]*(locales.size)).join(", ") : nil
             {

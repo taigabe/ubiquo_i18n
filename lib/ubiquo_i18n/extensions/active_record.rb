@@ -22,25 +22,20 @@ module UbiquoI18n
           # add attrs from this class
           @translatable_attributes += attrs
 
-          # add locale relation
-          #          self.belongs_to(:locale, {
-          #                          :foreign_key => :locale,
-          #                          :class_name => "::Locale"
-          #                        }) unless self.reflections[:locale]
-
           if instance_methods.include?('locale=')
             # give the proper behaviour to the locale setter
-            alias_method :set_locale, :locale=
-
-            define_method('locale=') do |locale|
+            define_method('locale_with_duality=') do |locale|
               locale = case locale
               when String
                 locale
               else
                 locale.iso_code if locale.respond_to?(:iso_code)
               end
-              set_locale locale
+              send(:locale_without_duality=, locale)
             end
+
+            alias_method_chain :locale=, :duality
+
           end
           
           # usage:

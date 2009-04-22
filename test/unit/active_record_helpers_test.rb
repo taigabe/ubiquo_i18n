@@ -65,22 +65,28 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal %w{}, TestModel.content(1).locale('en').map(&:locale)
   end
   
-  private
-      
-  def create_model(options = {})
-    TestModel.create(options)
+  def test_search_translations
+    es_m1 = create_model(:content_id => 1, :locale => 'es')
+    ca_m1 = create_model(:content_id => 1, :locale => 'ca')
+    de_m1 = create_model(:content_id => 1, :locale => 'de')
+    es_m2 = create_model(:content_id => 2, :locale => 'es')
+    en_m2 = create_model(:content_id => 2, :locale => 'en')
+    en_m3 = create_model(:content_id => 3, :locale => 'en')
+    
+    assert_equal_set [es_m1, de_m1], ca_m1.translations
+    assert_equal_set [ca_m1, de_m1], es_m1.translations
+    assert_equal_set [en_m2], es_m2.translations
+    assert_equal [], en_m3.translations
   end
+  
+  def test_translations_uses_named_scope
+    # this is what is tested
+    TestModel.expects(:translations)
+    # since we mock translations, the following needs to be mocked too (called on creation)
+    TestModel.any_instance.expects(:update_translations)
+    create_model(:content_id => 1, :locale => 'es').translations
+  end
+      
 end
 
-# Creates a test table for AR things work properly
-if ActiveRecord::Base.connection.tables.include?("test_models")
-  ActiveRecord::Base.connection.drop_table :test_models
-end
-ActiveRecord::Base.connection.create_table :test_models, :translatable => true do
-end
-# Model used to test Versionable extensions
-TestModel = Class.new(ActiveRecord::Base)
-
-TestModel.class_eval do
-  translatable
-end
+create_test_model_backend

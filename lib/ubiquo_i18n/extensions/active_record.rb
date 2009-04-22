@@ -9,7 +9,7 @@ module UbiquoI18n
       end
 
       module ClassMethods
-
+        
         # Class method for ActiveRecord that states which attributes are translatable and therefore when updated will be only updated for the current locale.
         #
         # EXAMPLE:
@@ -17,12 +17,15 @@ module UbiquoI18n
         #   translatable :title, :description
 
         def translatable(*attrs)
+          @translatable = true
           # inherit translatable attributes
           @translatable_attributes = self.superclass.instance_variable_get('@translatable_attributes') || []
           # add attrs from this class
           @translatable_attributes += attrs
 
-          if instance_methods.include?('locale=')
+          # try to generate the attribute setter
+          self.new.send(:locale=, :generate) rescue nil
+          if instance_methods.include?('locale=') && !instance_methods.include?('locale_with_duality=')
             # give the proper behaviour to the locale setter
             define_method('locale_with_duality=') do |locale|
               locale = case locale
@@ -48,13 +51,13 @@ module UbiquoI18n
           named_scope :locale, lambda{|*locales|
             locales = [Locale.current] if locales.size == 0
             all_locales = locales.delete(:ALL)
-            locales_string = locales.size > 0 ? (["locale != ?"]*(locales.size)).join(", ") : nil
+            locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
             {
               :conditions => ["#{self.table_name}.id in (" +
-                "SELECT distinct on (content_id) id " + 
-                "FROM #{self.table_name} " +
-                (all_locales ? "" : "WHERE #{self.table_name}.locale in (?)") +
-                "ORDER BY #{ ["content_id", locales_string].compact.join(", ")})", *[(all_locales ? nil : locales), *locales].compact]
+                  "SELECT distinct on (#{self.table_name}.content_id) id " + 
+                  "FROM #{self.table_name} " +
+                  (all_locales ? "" : "WHERE #{self.table_name}.locale in (?)") +
+                  "ORDER BY #{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")})", *[(all_locales ? nil : locales), *locales].compact]
             }
           }
           
@@ -65,15 +68,47 @@ module UbiquoI18n
             {:conditions => {:content_id => content_ids}}
           }
 
+          # usage:
+          # find all translations of a given content: Model.translations(content)
+          # remember it won't return 'content' itself
+          named_scope :translations, lambda{|content|
+            {:conditions => ["#{self.table_name}.content_id = ? AND #{self.table_name}.locale != ?", content.content_id, content.locale]}
+          }
+          
+          # Instance method to find translations
+          define_method('translations') do
+            self.class.translations(self)
+          end
         end
+
+        # Attributes that are always 'translated' (not copied between languages)
+        (@global_translatable_attributes ||= []) << :locale << :content_id
+
+        # Used by third parties to add fields that should always 
+        # be independent between different languages 
+        def add_translatable_attributes(*args)
+          @global_translatable_attributes += args
+        end
+        
+        def self.extended(klass)
+          klass.instance_variable_set('@global_translatable_attributes', @global_translatable_attributes)
+        end
+        
+        def inherited(klass)
+          super
+          klass.instance_variable_set('@global_translatable_attributes', @global_translatable_attributes)
+        end
+
       end
       
       module InstanceMethods
         
         def self.included(klass)
+          klass.alias_method_chain :update, :translatable
+          klass.alias_method_chain :create, :translatable
           klass.alias_method_chain :create, :i18n_content_id
           klass.alias_method_chain :create, :locale
-        
+          
         end
         
         # proxy to add a new content_id if empty on creation
@@ -100,6 +135,30 @@ module UbiquoI18n
           create_without_locale
         end
         
+        # Whenever we update existing content or create a translation, the expected behaviour is the following
+        # - The translatable fields will be updated just for the current instance
+        # - Fields not defined as translatable will need to be updated for every instance that shares the same content_id
+        def create_with_translatable
+          update_translations
+          create_without_translatable
+        end
+
+        def update_with_translatable
+          update_translations
+          update_without_translatable
+        end
+
+        def update_translations
+          if self.class.instance_variable_get('@translatable')
+            # Get the list of values that won't be copied
+            translatable_attributes = (self.class.instance_variable_get('@translatable_attributes') || []) + 
+              (self.class.instance_variable_get('@global_translatable_attributes') || [])
+            # Values to be copied
+            quoted_attributes = attributes_with_quotes(false, false, attribute_names - translatable_attributes.map{|attr| attr.to_s})
+            # Update the translations
+            self.translations.update_all(quoted_comma_pair_list(connection, quoted_attributes))
+          end
+        end
       end
 
     end

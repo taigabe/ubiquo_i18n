@@ -86,7 +86,45 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     TestModel.any_instance.expects(:update_translations)
     create_model(:content_id => 1, :locale => 'es').translations
   end
+  
+  def test_translations_finds_using_single_translatable_scope
+    TestModel.class_eval do
+      add_translatable_scope lambda{|el| "test_models.field1 = '#{el.field1}'"}
+    end
+    
+    es_1a = create_model(:content_id => 1, :locale => 'es', :field1 => 'a')
+    en_1b = create_model(:content_id => 1, :locale => 'en', :field1 => 'b')
+    es_2a = create_model(:content_id => 2, :locale => 'es', :field1 => 'a')
+    en_2a = create_model(:content_id => 2, :locale => 'en', :field1 => 'a')
+    
+    assert_equal_set [], es_1a.translations
+    assert_equal_set [], en_1b.translations
+    assert_equal_set [en_2a], es_2a.translations
+    # restore
+    TestModel.instance_variable_set('@translatable_scopes', [])
+  end
       
+  def test_translations_finds_using_multiple_translatable_scopes
+    TestModel.class_eval do
+      add_translatable_scope lambda{|el| "test_models.field1 = '#{el.field1}'"}
+      add_translatable_scope lambda{|el| "test_models.field2 = '#{el.field2}'"}
+    end
+    
+    es_1a = create_model(:content_id => 1, :locale => 'es', :field1 => 'a', :field2 => 'a')
+    en_1b = create_model(:content_id => 1, :locale => 'en', :field1 => 'b', :field2 => 'a')
+    es_2a = create_model(:content_id => 2, :locale => 'es', :field1 => 'a', :field2 => 'a')
+    en_2a = create_model(:content_id => 2, :locale => 'en', :field1 => 'a', :field2 => 'a')
+    ca_2a = create_model(:content_id => 2, :locale => 'ca', :field1 => 'a', :field2 => 'b')
+    
+    assert_equal_set [], es_1a.translations
+    assert_equal_set [], en_1b.translations
+    assert_equal_set [en_2a], es_2a.translations
+    assert_equal_set [], ca_2a.translations
+
+    # restore
+    TestModel.instance_variable_set('@translatable_scopes', [])
+  end
+
 end
 
 create_test_model_backend

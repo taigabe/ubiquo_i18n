@@ -70,9 +70,18 @@ module UbiquoI18n
 
           # usage:
           # find all translations of a given content: Model.translations(content)
+          # will use the defined scopes to discriminate what are translations
           # remember it won't return 'content' itself
           named_scope :translations, lambda{|content|
-            {:conditions => ["#{self.table_name}.content_id = ? AND #{self.table_name}.locale != ?", content.content_id, content.locale]}
+            scoped_conditions = []
+            @translatable_scopes.each do |scope|
+                scoped_conditions << (String === scope ? scope : scope.call(content))
+            end
+             translation_condition = "#{self.table_name}.content_id = ? AND #{self.table_name}.locale != ?"
+            unless scoped_conditions.blank?
+              translation_condition += ' AND ' + scoped_conditions.join(' AND ')
+            end
+            {:conditions => [translation_condition, content.content_id, content.locale]}
           }
           
           # Instance method to find translations
@@ -90,13 +99,32 @@ module UbiquoI18n
           @global_translatable_attributes += args
         end
         
+        # Define scopes to limit the automatic update of common fields to instances
+        # that have the same value for each scope (as a field name)
+        @translatable_scopes ||= [] 
+
+        # Used by third parties to add scopes for translations updates of common fields
+        # It accepts two formats for condition:
+        # - A String with a sql where condition (e.g. is_active = 1)
+        # - A Proc that will be called with the current element argument and
+        #   that should return a string (e.g. lambda{|el| "table.field = #{el.field + 1}"})
+        def add_translatable_scope(condition)
+          @translatable_scopes << condition
+        end
+        
+        @@translatable_inheritable_instance_variables = %w{global_translatable_attributes translatable_scopes}
+
         def self.extended(klass)
-          klass.instance_variable_set('@global_translatable_attributes', @global_translatable_attributes)
+          @@translatable_inheritable_instance_variables.each do |inheritable|
+            klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+          end
         end
         
         def inherited(klass)
           super
-          klass.instance_variable_set('@global_translatable_attributes', @global_translatable_attributes)
+          @@translatable_inheritable_instance_variables.each do |inheritable|
+            klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+          end
         end
 
       end

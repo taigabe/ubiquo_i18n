@@ -41,6 +41,20 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     [:attr1, :attr2].each{|attr| assert ar.instance_variable_get('@global_translatable_attributes').include?(attr)}
   end
 
+  def test_should_have_empty_default_translatable_scopes
+    ar = create_ar
+    assert_equal [], ar.instance_variable_get('@translatable_scopes')
+  end
+  
+  def test_should_add_global_translatable_scope
+    ar = create_ar
+    ar.class_eval do
+      add_translatable_scope :attr1
+    end
+    scopes = ar.instance_variable_get('@translatable_scopes')
+    assert scopes.include?(:attr1)
+  end
+
   def test_should_store_locale
     model = create_model(:field1 => 'ca', :locale => 'ca')
     assert String === model.locale

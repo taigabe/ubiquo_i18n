@@ -4,6 +4,15 @@ class Locale < ActiveRecord::Base
   
   # Return the current working locale
   def self.current
-    Ubiquo::Config.context(:ubiquo_i18n).get(:current_locale)
+    @current_locale ||= Ubiquo::Config.context(:ubiquo_i18n).get(:current_locale)
+  end
+  def self.current=(locale)
+    @current_locale = locale
+  end
+  
+  def self.using_locale(locale, &block)
+    old_locale, @current_locale = @current_locale, locale
+    block.call
+    @current_locale = old_locale
   end
 end

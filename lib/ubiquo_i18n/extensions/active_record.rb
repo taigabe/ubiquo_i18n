@@ -82,7 +82,7 @@ module UbiquoI18n
             # we do this even if there is not currently any tr. attribute, 
             # as long as @translatable_attributes is defined
             unless self.content_id
-              self.content_id = self.class.connection.next_val_sequence("#{self.class.to_s.tableize}_content_id")
+              self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_content_id")
             end
           end
           create_without_i18n_content_id

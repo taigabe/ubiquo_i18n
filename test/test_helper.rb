@@ -11,7 +11,7 @@ def create_model(options = {})
   TestModel.create(options)
 end
 
-TestModel = Class.new(ActiveRecord::Base)
+TestModel = Class.new(ActiveRecord::Base) unless Object.const_defined? 'TestModel'
 
 def create_test_model_backend
   # Creates a test table for AR things work properly

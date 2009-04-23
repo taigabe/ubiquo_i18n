@@ -79,10 +79,45 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_related_model(:test_model => model, :field1 => '2')
     
     assert_equal [model], TestModel.all(:conditions => "related_test_models.field1 = '1'", :include => :related_test_models)
-    assert_equal [], TestModel.locale('es').all(:conditions => "related_test_models.field1 = '10'", :include => :related_test_models)
+    assert_equal [], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '10'", :include => :related_test_models)
     assert_equal [model], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '1'", :include => :related_test_models)
   end
   
+  def test_search_by_locale_with_joins
+    model = create_model
+    create_related_model(:test_model => model, :field1 => '1')
+    create_related_model(:test_model => model, :field1 => '2')
+    
+    assert_equal [model], TestModel.all(:conditions => "related_test_models.field1 = '1'", :joins => :related_test_models)
+    assert_equal [], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '10'", :joins => :related_test_models)
+    assert_equal [model], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '1'", :joins => :related_test_models)
+  end
+  
+  def test_search_by_locale_with_limit
+    20.times do 
+      create_model(:locale => 'ca', :field1 => '1')
+    end
+    20.times do 
+      create_model(:locale => 'en', :field1 => '2')
+    end
+    
+    assert_equal 40, TestModel.locale('es', :ALL).count
+    assert_equal 10, TestModel.locale('es', :ALL).all(:conditions => "field1 = '1'", :limit => 10).size
+    assert_equal 5, TestModel.locale('en', :ALL).all(:conditions => "field1 = '1'", :limit => 5).size
+  end
+  
+  def test_search_by_locale_with_group_by
+    10.times do 
+      create_model(:locale => 'ca', :field1 => '1')
+    end
+    20.times do 
+      create_model(:locale => 'en', :field1 => '2')
+    end
+    
+    assert_equal_set ["10", "20"], TestModel.locale('es', :ALL).all(:select => 'COUNT(*) as numvalues', :group => :field1).map(&:numvalues)
+  end
+  
+
   def test_search_translations
     es_m1 = create_model(:content_id => 1, :locale => 'es')
     ca_m1 = create_model(:content_id => 1, :locale => 'ca')

@@ -124,14 +124,15 @@ module UbiquoI18n
             locales = locales.size == 0 ? [Locale.current] : locales.uniq
             all_locales = locales.delete(:ALL)
             locale_conditions = all_locales ? "" : ["#{self.table_name}.locale in (?)", locales]
-            
+
             # expand our sql to match the potential conditions
             join_dependency = ::ActiveRecord::Associations::ClassMethods::JoinDependency.new(self, merge_includes(scope(:find, :include), options[:include]), options[:joins])
             joins_sql = join_dependency.join_associations.collect{|join| join.association_join }.join
-
             conditions_sql = add_conditions!('', merge_conditions(locale_conditions, options[:conditions]), scope(:find))
+
             # locale preference order 
             locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
+
             # build the subquery and add it as a condition to the original options
             locale_filter = ["#{self.table_name}.id in (" +
                 "SELECT distinct on (#{self.table_name}.content_id) #{self.table_name}.id " + 

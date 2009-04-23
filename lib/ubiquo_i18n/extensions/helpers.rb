@@ -11,6 +11,10 @@ module UbiquoI18n
             )) +
           "</form>"
       end
+      
+      def show_translations(model, options = {})
+        render :partial => "shared/ubiquo/model_translations", :locals => {:model => model}
+      end
     end
   end
 end

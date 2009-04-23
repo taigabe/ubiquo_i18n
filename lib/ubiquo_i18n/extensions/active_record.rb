@@ -57,18 +57,12 @@ module UbiquoI18n
           # find all content in any locale: Model.locale(:ALL)
           #
           named_scope :locale, lambda{|*locales|
-            locales = [Locale.current] if locales.size == 0
-            all_locales = locales.delete(:ALL)
-            locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
-            {
-              :conditions => ["#{self.table_name}.id in (" +
-                  "SELECT distinct on (#{self.table_name}.content_id) id " + 
-                  "FROM #{self.table_name} " +
-                  (all_locales ? "" : "WHERE #{self.table_name}.locale in (?)") +
-                  "ORDER BY #{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")})", *[(all_locales ? nil : locales), *locales].compact]
-            }
+            @locale_namespaced = true
+            @current_locale_list ||= []
+            @current_locale_list += locales
+            {}
           }
-          
+                    
           # usage:
           # find all items of one content: Model.content(1).first
           # find all items of some contents: Model.content(1,2,3)
@@ -97,7 +91,50 @@ module UbiquoI18n
             self.class.translations(self)
           end
         end
+        
+        # Adds :current_version => true to versionable models unless explicitly said :version option
+        def find_with_locale_filter(*args)
+          if self.instance_variable_get('@translatable')
+            options = args.extract_options!
+            apply_locale_filter!(options)
+            find_without_locale_filter(args.first, options)
+          else
+            find_without_locale_filter(*args)
+          end
+        end
+        
+        def count_with_locale_filter(*args)
+          if self.instance_variable_get('@translatable')
+            options = args.extract_options!
+            apply_locale_filter!(options)
+            count_without_locale_filter(args.first, options)
+          else
+            count_without_locale_filter(*args)
+          end
+        end
+        
+        def apply_locale_filter!(options)        
+          apply_locale_filter = @locale_namespaced
+          locales = @current_locale_list
+          # set this find as dispatched
+          @locale_namespaced = false
+          @current_locale_list = []
+          if apply_locale_filter
+            locales = locales.size == 0 ? [Locale.current] : locales.uniq
+            all_locales = locales.delete(:ALL)
+            locale_conditions = all_locales ? "" : ["#{self.table_name}.locale in (?)", locales]
+            conditions_sql = add_conditions!('', merge_conditions(locale_conditions, options[:conditions]), scope(:find))
+            locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
+            locale_filter = ["#{self.table_name}.id in (" +
+                "SELECT distinct on (#{self.table_name}.content_id) id " + 
+                "FROM #{self.table_name} " + conditions_sql.to_s +
+                "ORDER BY #{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")})", *locales]
+            
+            options[:conditions] = merge_conditions(options[:conditions], locale_filter)
+          end
+        end
 
+        
         # Attributes that are always 'translated' (not copied between languages)
         (@global_translatable_attributes ||= []) << :locale << :content_id
 
@@ -125,6 +162,12 @@ module UbiquoI18n
         def self.extended(klass)
           @@translatable_inheritable_instance_variables.each do |inheritable|
             klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+          end
+          klass.class_eval do
+            class << self
+              alias_method_chain :find, :locale_filter
+              alias_method_chain :count, :locale_filter
+            end
           end
         end
         

@@ -34,7 +34,8 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
     assert_equal 'en', Locale.current
   end
     
-  def test_should_get_current_locale
+  def test_should_get_current_locale_from_config_if_doesnt_exist
+    Locale.instance_variable_set('@current_locale', nil)
     Ubiquo::Config.context(:ubiquo_i18n).set(:current_locale, 'test')
     assert_equal 'test', Locale.current    
   end

@@ -73,6 +73,16 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal %w{en}, TestModel.locale('es', :ALL).all(:conditions => {:field1 => '2'}).map(&:locale)
   end
   
+  def test_search_by_locale_with_include
+    model = create_model
+    create_related_model(:test_model => model, :field1 => '1')
+    create_related_model(:test_model => model, :field1 => '2')
+    
+    assert_equal [model], TestModel.all(:conditions => "related_test_models.field1 = '1'", :include => :related_test_models)
+    assert_equal [], TestModel.locale('es').all(:conditions => "related_test_models.field1 = '10'", :include => :related_test_models)
+    assert_equal [model], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '1'", :include => :related_test_models)
+  end
+  
   def test_search_translations
     es_m1 = create_model(:content_id => 1, :locale => 'es')
     ca_m1 = create_model(:content_id => 1, :locale => 'ca')

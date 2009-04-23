@@ -15,6 +15,9 @@ module UbiquoI18n
         # EXAMPLE:
         #
         #   translatable :title, :description
+        # 
+        # possible options:
+        #   :timestamps => set to false to avoid translatable (i.e. independent per translation) timestamps
 
         def translatable(*attrs)
           @translatable = true
@@ -22,6 +25,11 @@ module UbiquoI18n
           @translatable_attributes = self.superclass.instance_variable_get('@translatable_attributes') || []
           # add attrs from this class
           @translatable_attributes += attrs
+          
+          # extract and parse options
+          options = attrs.extract_options!
+          # timestamps are independent per translation unless set
+          @translatable_attributes += [:created_at, :updated_at] unless options[:timestamps] == false
 
           # try to generate the attribute setter
           self.new.send(:locale=, :generate) rescue nil

@@ -7,7 +7,9 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     ar.class_eval do
       translatable :field1, :field2
     end
-    assert_equal [:field1, :field2], ar.instance_variable_get('@translatable_attributes')
+    [:field1, :field2].each do |field|
+      assert ar.instance_variable_get('@translatable_attributes').include?(field)
+    end
   end
 
   def test_should_accumulate_translatable_attributes_list_from_parent
@@ -19,14 +21,35 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     son.class_eval do
       translatable :field3, :field4
     end
-    assert_equal [:field1, :field2, :field3, :field4], son.instance_variable_get('@translatable_attributes')
+    [:field1, :field2, :field3, :field4].each do |field|
+      assert son.instance_variable_get('@translatable_attributes').include?(field)
+    end
     gson = Class.new(son)
     gson.class_eval do
       translatable :field5
     end
-    assert_equal [:field1, :field2, :field3, :field4, :field5], gson.instance_variable_get('@translatable_attributes')
+    [:field1, :field2, :field3, :field4, :field5].each do |field|
+      assert gson.instance_variable_get('@translatable_attributes').include?(field)
+    end
   end
   
+  def test_should_not_set_translatable_timestamps
+    ar = create_ar
+    ar.class_eval do
+      translatable :field1, :field2, :timestamps => false
+    end
+    assert !ar.instance_variable_get('@translatable_attributes').include?(:created_at)
+    assert !ar.instance_variable_get('@translatable_attributes').include?(:updated_at)
+  end
+  
+  def test_should_set_translatable_timestamps_by_default
+    ar = create_ar
+    ar.class_eval do
+      translatable
+    end
+    assert ar.instance_variable_get('@translatable_attributes').include?(:created_at)
+    assert ar.instance_variable_get('@translatable_attributes').include?(:updated_at)
+  end  
 
   def test_should_have_global_translatable_attributes
     ar = create_ar

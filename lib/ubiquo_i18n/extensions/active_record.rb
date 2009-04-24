@@ -98,7 +98,7 @@ module UbiquoI18n
             existing_translation = find_by_content_id(content_id)
             new_translation = new
             if existing_translation
-              existing_translation.clone_translatable_attributes.each_pair do |attr, value|
+              existing_translation.get_untranslatable_attributes.each_pair do |attr, value|
                 new_translation.send("#{attr}=", value)
               end
             end
@@ -266,9 +266,9 @@ module UbiquoI18n
           attribute_names - translatable_attributes.map{|attr| attr.to_s}
         end
         
-        def clone_translatable_attributes
+        def get_untranslatable_attributes
           attrs = {}
-          (untranslatable_attributes + [:content_id]).each do |name|
+          (untranslatable_attributes + [:content_id.to_s] - [:id.to_s]).each do |name|
             attrs[name] = clone_attribute_value(:read_attribute, name)
           end
           attrs

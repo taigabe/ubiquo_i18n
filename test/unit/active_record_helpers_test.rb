@@ -193,7 +193,36 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_model(:content_id => 1, :locale => 'ca', :field2 => 'newval')
     assert_equal 'val', es_m1.reload.field2
   end
+  
+  def test_translate_should_create_translation_with_correct_values
+    Locale.current = 'ca'
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    ca = TestModel.translate(1)
+    assert_equal es.content_id, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert_equal nil, ca.field1
+    assert_equal 'val', ca.field2
+  end
 
+  def test_translate_should_create_new_instance_when_no_valid_content_id
+    Locale.current = 'ca'
+    create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    ca = TestModel.translate(2)
+    assert_equal nil, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert_equal nil, ca.field1
+    assert_equal nil, ca.field2
+  end
+
+  def test_translate_should_create_new_instance_when_no_content_id
+    Locale.current = 'ca'
+    create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    ca = TestModel.translate(nil)
+    assert_equal nil, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert_equal nil, ca.field1
+    assert_equal nil, ca.field2
+  end
 end
 
 create_test_model_backend

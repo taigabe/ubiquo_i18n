@@ -90,6 +90,21 @@ module UbiquoI18n
           define_method('translations') do
             self.class.translations(self)
           end
+          
+          # Creates a new instance of the translatable class, using the common
+          # values from an instance sharing the same content_id
+          # Returns a new independent instance if content_id is nil or not found
+          def translate(content_id)
+            existing_translation = find_by_content_id(content_id)
+            new_translation = new
+            if existing_translation
+              existing_translation.clone_translatable_attributes.each_pair do |attr, value|
+                new_translation.send("#{attr}=", value)
+              end
+            end
+            new_translation.locale = Locale.current
+            new_translation
+          end
         end
         
         # Adds :current_version => true to versionable models unless explicitly said :version option
@@ -238,14 +253,27 @@ module UbiquoI18n
         def update_translations
           if self.class.instance_variable_get('@translatable')
             # Get the list of values that won't be copied
-            translatable_attributes = (self.class.instance_variable_get('@translatable_attributes') || []) + 
-              (self.class.instance_variable_get('@global_translatable_attributes') || [])
             # Values to be copied
-            quoted_attributes = attributes_with_quotes(false, false, attribute_names - translatable_attributes.map{|attr| attr.to_s})
+            quoted_attributes = attributes_with_quotes(false, false, untranslatable_attributes)
             # Update the translations
             self.translations.update_all(quoted_comma_pair_list(connection, quoted_attributes))
           end
         end
+        
+        def untranslatable_attributes
+          translatable_attributes = (self.class.instance_variable_get('@translatable_attributes') || []) + 
+            (self.class.instance_variable_get('@global_translatable_attributes') || [])
+          attribute_names - translatable_attributes.map{|attr| attr.to_s}
+        end
+        
+        def clone_translatable_attributes
+          attrs = {}
+          (untranslatable_attributes + [:content_id]).each do |name|
+            attrs[name] = clone_attribute_value(:read_attribute, name)
+          end
+          attrs
+        end
+
       end
 
     end

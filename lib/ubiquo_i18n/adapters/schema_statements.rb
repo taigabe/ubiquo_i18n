@@ -13,6 +13,10 @@ module UbiquoI18n
             table_definition.sequence table_name, :content_id 
           end
         end
+        if translatable
+          add_index table_name, :locale
+          add_index table_name, :content_id unless indexes(table_name).map(&:columns).flatten.include? "content_id"
+        end
       end
     end
   end

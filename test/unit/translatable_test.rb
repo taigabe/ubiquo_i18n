@@ -103,13 +103,6 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
       assert_equal 12, model.content_id
     end      
   end
-
-  def test_should_add_current_locale_on_create_if_empty
-    assert_difference 'TestModel.count' do
-      model = create_model
-      assert_equal Locale.current, model.locale
-    end  
-  end
   
   def test_should_not_add_current_locale_on_create_if_exists
     assert_difference 'TestModel.count' do
@@ -120,7 +113,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
   
   def test_should_update_non_translatable_attributes_in_instances_sharing_content_id_on_create
     test_1 = create_model(:field1 => 'f1', :field2 => 'f2', :locale => 'ca')
-    test_2 = create_model(:field1 => 'newf1', :field2 => 'newf2', :content_id => test_1.content_id)
+    test_2 = create_model(:field1 => 'newf1', :field2 => 'newf2', :locale => 'es', :content_id => test_1.content_id)
     create_model(:field1 => 'newerf1', :field2 => 'newerf2')
     assert_equal 'newf2', test_1.reload.field2
     assert_equal 'f1', test_1.field1
@@ -130,7 +123,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
 
   def test_should_update_non_translatable_attributes_in_instances_sharing_content_id_on_update
     test_1 = create_model(:field1 => 'f1', :field2 => 'f2', :locale => 'ca')
-    test_2 = create_model(:field1 => 'newf1', :field2 => 'newf2', :content_id => test_1.content_id)
+    test_2 = create_model(:field1 => 'newf1', :field2 => 'newf2', :locale => 'es', :content_id => test_1.content_id)
     test_1.update_attribute :field2, 'common'
     assert_equal 'common', test_2.reload.field2
     test_2.update_attribute :field1, 'mine'

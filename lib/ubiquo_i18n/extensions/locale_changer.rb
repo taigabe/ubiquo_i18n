@@ -3,16 +3,14 @@ module UbiquoI18n
     module LocaleChanger
       def self.included(klass)
         klass.send :include, InstanceMethods
-        klass.before_filter :check_new_locale
+        klass.send :helper_method, :current_locale
       end
       
       module InstanceMethods
-        def check_new_locale
-          new_locale = params[:locale] || session[:locale]
-          Locale.current = new_locale if new_locale
-          session[:locale] = Locale.current
+        def current_locale
+          @current_locale ||= params[:locale] || session[:locale]
+          session[:locale] = @current_locale
         end
-        
       end
     end
   end

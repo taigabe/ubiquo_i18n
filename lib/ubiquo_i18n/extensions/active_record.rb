@@ -94,7 +94,7 @@ module UbiquoI18n
           # Creates a new instance of the translatable class, using the common
           # values from an instance sharing the same content_id
           # Returns a new independent instance if content_id is nil or not found
-          def translate(content_id)
+          def translate(content_id, locale)
             existing_translation = find_by_content_id(content_id)
             new_translation = new
             if existing_translation
@@ -102,7 +102,7 @@ module UbiquoI18n
                 new_translation.send("#{attr}=", value)
               end
             end
-            new_translation.locale = Locale.current
+            new_translation.locale = locale
             new_translation
           end
         end
@@ -136,8 +136,9 @@ module UbiquoI18n
           @current_locale_list = []
           if apply_locale_filter
             # build locale restrictions
-            locales = locales.size == 0 ? [Locale.current] : locales.uniq
+            locales.uniq!
             all_locales = locales.delete(:ALL)
+            
             locale_conditions = all_locales ? "" : ["#{self.table_name}.locale in (?)", locales]
 
             # expand our sql to match the potential conditions
@@ -230,9 +231,6 @@ module UbiquoI18n
           if self.class.instance_variable_get('@translatable_attributes')
             # we do this even if there is not currently any tr. attribute, 
             # as long as @translatable_attributes is defined
-            unless self.locale
-              self.locale = Locale.current
-            end
           end
           create_without_locale
         end

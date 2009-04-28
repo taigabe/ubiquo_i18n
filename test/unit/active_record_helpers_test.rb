@@ -49,7 +49,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_model(:content_id => 2, :locale => 'es')
     create_model(:content_id => 2, :locale => 'en')
     
-    assert_equal %w{es ca}, TestModel.content(1).map(&:locale)
+    assert_equal %w{es ca}, TestModel.content(1).all(:order => "id").map(&:locale)
     assert_equal %w{es ca es en}, TestModel.content(1, 2).map(&:locale)
   end
   
@@ -195,9 +195,8 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   end
   
   def test_translate_should_create_translation_with_correct_values
-    Locale.current = 'ca'
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
-    ca = TestModel.translate(1)
+    ca = TestModel.translate(1, 'ca')
     assert_nil ca.id
     assert_equal es.content_id, ca.content_id
     assert_equal 'ca', ca.locale
@@ -207,9 +206,8 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   end
 
   def test_translate_should_create_new_instance_when_no_valid_content_id
-    Locale.current = 'ca'
     create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
-    ca = TestModel.translate(2)
+    ca = TestModel.translate(2, 'ca')
     assert_equal nil, ca.content_id
     assert_equal 'ca', ca.locale
     assert_equal nil, ca.field1
@@ -217,9 +215,8 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   end
 
   def test_translate_should_create_new_instance_when_no_content_id
-    Locale.current = 'ca'
     create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
-    ca = TestModel.translate(nil)
+    ca = TestModel.translate(nil, 'ca')
     assert_equal nil, ca.content_id
     assert_equal 'ca', ca.locale
     assert_equal nil, ca.field1

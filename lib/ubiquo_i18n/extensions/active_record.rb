@@ -98,7 +98,7 @@ module UbiquoI18n
             existing_translation = find_by_content_id(content_id)
             new_translation = new
             if existing_translation
-              existing_translation.get_untranslatable_attributes.each_pair do |attr, value|
+              existing_translation.untranslatable_attributes.each_pair do |attr, value|
                 new_translation.send("#{attr}=", value)
               end
             end
@@ -249,24 +249,30 @@ module UbiquoI18n
         end
 
         def update_translations
-          if self.class.instance_variable_get('@translatable')
-            # Get the list of values that won't be copied
-            # Values to be copied
-            quoted_attributes = attributes_with_quotes(false, false, untranslatable_attributes)
+          if self.class.instance_variable_get('@translatable') && !@stop_translatable_propagation
             # Update the translations
-            self.translations.update_all(quoted_comma_pair_list(connection, quoted_attributes))
+            self.translations.each do |translation|
+              translation.instance_variable_set('@stop_translatable_propagation', true)
+              begin 
+                translation.update_attributes untranslatable_attributes
+              rescue
+                translation.instance_variable_set('@stop_translatable_propagation', false)
+                raise
+              end
+              translation.instance_variable_set('@stop_translatable_propagation', false)
+            end
           end
         end
         
-        def untranslatable_attributes
+        def untranslatable_attributes_names
           translatable_attributes = (self.class.instance_variable_get('@translatable_attributes') || []) + 
             (self.class.instance_variable_get('@global_translatable_attributes') || [])
           attribute_names - translatable_attributes.map{|attr| attr.to_s}
         end
         
-        def get_untranslatable_attributes
+        def untranslatable_attributes
           attrs = {}
-          (untranslatable_attributes + [:content_id.to_s] - [:id.to_s]).each do |name|
+          (untranslatable_attributes_names + [:content_id.to_s] - [:id.to_s]).each do |name|
             attrs[name] = clone_attribute_value(:read_attribute, name)
           end
           attrs

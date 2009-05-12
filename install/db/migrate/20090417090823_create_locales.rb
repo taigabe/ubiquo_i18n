@@ -5,6 +5,7 @@ class CreateLocales < ActiveRecord::Migration
       t.string :english_name
       t.string :native_name
       t.boolean :is_active, :default => false
+      t.boolean :is_default, :default => false
     end
   end
 

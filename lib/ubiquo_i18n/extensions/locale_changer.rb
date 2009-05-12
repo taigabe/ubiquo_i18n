@@ -8,7 +8,7 @@ module UbiquoI18n
       
       module InstanceMethods
         def current_locale
-          @current_locale ||= params[:locale] || session[:locale]
+          @current_locale ||= params[:locale] || session[:locale] || Locale.default
           session[:locale] = @current_locale
         end
       end

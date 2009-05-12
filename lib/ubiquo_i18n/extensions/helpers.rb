@@ -15,6 +15,15 @@ module UbiquoI18n
       def show_translations(model, options = {})
         render :partial => "shared/ubiquo/model_translations", :locals => {:model => model}
       end
+      
+      def superadmin_locales_tab(navtab)
+        navtab.add_tab do |tab|
+          tab.text = I18n.t("ubiquo.i18n.translations")
+          tab.title = I18n.t("ubiquo.i18n.translations_title")
+          tab.highlights_on({:controller => "ubiquo/locales"})
+          tab.link = ubiquo_locales_path
+        end if ubiquo_config_call(:assets_permit, {:context => :ubiquo_media})
+      end
     end
   end
 end

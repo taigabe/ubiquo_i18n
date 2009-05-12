@@ -3,7 +3,6 @@ module UbiquoI18n
     autoload :ActiveRecord, 'ubiquo_i18n/extensions/active_record'
     autoload :LocaleChanger, 'ubiquo_i18n/extensions/locale_changer'
     autoload :Helpers, 'ubiquo_i18n/extensions/helpers'
-
   end
 end
 

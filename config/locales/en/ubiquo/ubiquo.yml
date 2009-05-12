@@ -2,3 +2,7 @@ en:
   ubiquo:
     i18n:
       translations: "Translations"
+      translations_title: "Go to translations management"
+      locales_help_message: "Here you can manage all available locales."
+      locales_updated: "Locales updated"
+      select_default_locale_error: "You must set the default locale as active."

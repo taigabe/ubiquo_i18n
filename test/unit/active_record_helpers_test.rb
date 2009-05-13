@@ -60,8 +60,8 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_model(:content_id => 2, :locale => 'en')
     
     assert_equal %w{es}, TestModel.locale('es').content(1).map(&:locale)
-    assert_equal %w{ca en}, TestModel.content(1, 2).locale('ca', 'en').map(&:locale)
-    assert_equal %w{ca es}, TestModel.content(1, 2).locale('ca', 'es').map(&:locale)
+    assert_equal_set %w{ca en}, TestModel.content(1, 2).locale('ca', 'en').map(&:locale)
+    assert_equal_set %w{ca es}, TestModel.content(1, 2).locale('ca', 'es').map(&:locale)
     assert_equal %w{}, TestModel.content(1).locale('en').map(&:locale)
   end
   
@@ -221,6 +221,17 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal 'ca', ca.locale
     assert_equal nil, ca.field1
     assert_equal nil, ca.field2
+  end
+  
+  def test_instance_translate_should_create_translation_with_correct_values
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    ca = es.translate('ca')
+    assert_nil ca.id
+    assert_equal es.content_id, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert_nil ca.field1
+    assert_equal 'val', ca.field2
+    assert ca.new_record?
   end
 end
 

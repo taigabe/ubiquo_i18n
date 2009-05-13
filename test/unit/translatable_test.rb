@@ -78,6 +78,23 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert scopes.include?(:attr1)
   end
 
+  def test_should_have_empty_default_translatable_shared_relations
+    ar = create_ar
+    assert_equal nil, ar.instance_variable_get('@translatable_shared_relations')
+    ar.class_eval do
+      translatable
+    end
+    assert_equal [], ar.instance_variable_get('@translatable_shared_relations')
+  end
+  
+  def test_should_add_global_translatable_scope
+    ar = create_ar
+    ar.class_eval do
+      translatable :shared_relations => :rel
+    end
+    assert ar.instance_variable_get('@translatable_shared_relations').include?(:rel)
+  end
+  
   def test_should_store_locale
     model = create_model(:field1 => 'ca', :locale => 'ca')
     assert String === model.locale

@@ -91,11 +91,6 @@ module UbiquoI18n
             self.class.translations(self)
           end
           
-          # Returns true if the class is marked as translatable
-          def is_translatable?
-            @translatable
-          end
-          
           # Creates a new instance of the translatable class, using the common
           # values from an instance sharing the same content_id
           # Returns a new independent instance if content_id is nil or not found
@@ -216,6 +211,11 @@ module UbiquoI18n
           end
           
         end
+        
+        # Returns true if the class is marked as translatable
+        def is_translatable?
+          @translatable || @translatable.nil? && self.superclass.respond_to?(:is_translatable?) && self.superclass.is_translatable?
+        end        
         
         # Adds :current_version => true to versionable models unless explicitly said :version option
         def find_with_locale_filter(*args)

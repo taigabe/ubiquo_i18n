@@ -19,13 +19,13 @@ def create_translatable_related_model(options = {})
   TranslatableRelatedTestModel.create(options)
 end
 
-%w{TestModel RelatedTestModel UnsharedRelatedTestModel TranslatableRelatedTestModel ChainTestModelA ChainTestModelB ChainTestModelC}.each do |c|
+%w{TestModel RelatedTestModel UnsharedRelatedTestModel TranslatableRelatedTestModel ChainTestModelA ChainTestModelB ChainTestModelC OneOneTestModel}.each do |c|
   Object.const_set(c, Class.new(ActiveRecord::Base)) unless Object.const_defined? c
 end
 
 def create_test_model_backend
   # Creates a test table for AR things work properly
-  %w{test_models related_test_models unshared_related_test_models translatable_related_test_models chain_test_model_as chain_test_model_bs chain_test_model_cs}.each do |table|
+  %w{test_models related_test_models unshared_related_test_models translatable_related_test_models chain_test_model_as chain_test_model_bs chain_test_model_cs one_one_test_models}.each do |table|
     if ActiveRecord::Base.connection.tables.include?(table)
       ActiveRecord::Base.connection.drop_table table
     end
@@ -58,6 +58,10 @@ def create_test_model_backend
   ActiveRecord::Base.connection.create_table :chain_test_model_cs, :translatable => true do |t|
     t.integer :chain_test_model_a_id
     t.string :field
+  end
+  ActiveRecord::Base.connection.create_table :one_one_test_models, :translatable => true do |t|
+    t.integer :one_one_test_model_id
+    t.string :common
   end
   
   
@@ -98,6 +102,12 @@ def create_test_model_backend
     translatable :field, :shared_relations => :chain_test_model_bs
     belongs_to :chain_test_model_a
     has_many :chain_test_model_bs, :translatable => false
+  end
+  
+  OneOneTestModel.class_eval do
+    translatable :one_one_test_model_id
+    belongs_to :one_one, :translatable => false, :foreign_key => 'one_one_test_model_id', :class_name => 'OneOneTestModel'
+    has_one :one_one_test_model, :translatable => false
   end
 end
 

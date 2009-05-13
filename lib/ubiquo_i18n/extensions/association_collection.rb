@@ -27,7 +27,7 @@ module UbiquoI18n
                       translation_relationship_contents << existing_translation
                     end
 
-                else
+                  else
                     translated_rel = old_rel.clone
                     translation_relationship_contents << translated_rel
                     translated_rel.save                    

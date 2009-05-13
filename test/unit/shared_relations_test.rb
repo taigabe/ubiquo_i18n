@@ -2,36 +2,54 @@ require File.dirname(__FILE__) + "/../test_helper.rb"
 
 class Ubiquo::TranslatableTest < ActiveSupport::TestCase
 
-  def test_should_copy_shared_relations_simple_has_many_creation_case
-    m1 = create_model(:locale => 'ca')
-    m1.shared_related_test_models << create_related_model(:field1 => '1')
-    m1.shared_related_test_models << create_related_model(:field1 => '2')
-    m2 = m1.translate('en')
+  # In these tests names, "simple" involves a non-translatable model, else "translatable" is used
 
-    assert_equal 2, m2.shared_related_test_models.size # like m1, but not the same...
-    assert_not_equal m1.shared_related_test_models, m2.shared_related_test_models 
+  def test_copy_shared_relations_simple_belongs_to_case
+    rel = create_related_model
+    rel.test_model = create_model(:locale => 'ca')
+    rel.save
 
-    m2.save
-    assert_equal 4, RelatedTestModel.count # 2 original + 2 duplicated
-    assert_equal 2, RelatedTestModel.count(:conditions => {:field1 => '1'})
-    assert_equal 2, RelatedTestModel.count(:conditions => {:field1 => '2'})
+    # not supported, should fail
+    assert_raise RuntimeError do
+      rel.test_model.translate('en')
+    end
+
+    # check no changes
+    assert_equal 1, TestModel.count 
+    assert_equal 1, RelatedTestModel.count
   end
 
-  def test_should_copy_shared_relations_simple_has_many_update_case
-    m1 = create_model(:locale => 'ca')
-    m1.shared_related_test_models << create_related_model(:field1 => '1')
-    m1.shared_related_test_models << create_related_model(:field1 => '2')
-    m2 = m1.translate('en')
-    m2.save
-    m1.shared_related_test_models = [create_related_model(:field1 => '3')]
+  # The following 2 tests test duplicity which is currently a disabled behaviour
+#  def test_should_copy_shared_relations_simple_has_many_creation_case
+#    m1 = create_model(:locale => 'ca')
+#    m1.shared_related_test_models << create_related_model(:field1 => '1')
+#    m1.shared_related_test_models << create_related_model(:field1 => '2')
+#    m2 = m1.translate('en')
+#
+#    assert_equal 2, m2.shared_related_test_models.size # like m1, but not the same...
+#    assert_not_equal m1.shared_related_test_models, m2.shared_related_test_models 
+#
+#    m2.save
+#    assert_equal 4, RelatedTestModel.count # 2 original + 2 duplicated
+#    assert_equal 2, RelatedTestModel.count(:conditions => {:field1 => '1'})
+#    assert_equal 2, RelatedTestModel.count(:conditions => {:field1 => '2'})
+#  end
+#
+#  def test_should_copy_shared_relations_simple_has_many_update_case
+#    m1 = create_model(:locale => 'ca')
+#    m1.shared_related_test_models << create_related_model(:field1 => '1')
+#    m1.shared_related_test_models << create_related_model(:field1 => '2')
+#    m2 = m1.translate('en')
+#    m2.save
+#    m1.shared_related_test_models = [create_related_model(:field1 => '3')]
+#
+#    assert_equal 1, m2.reload.shared_related_test_models.size
+#    assert_equal 6, RelatedTestModel.count
+#    assert_equal 2, RelatedTestModel.count(:conditions => {:field1 => '3'})
+#    assert_equal '3', m2.shared_related_test_models.first.field1
+#  end
 
-    assert_equal 1, m2.reload.shared_related_test_models.size
-    assert_equal 6, RelatedTestModel.count
-    assert_equal 2, RelatedTestModel.count(:conditions => {:field1 => '3'})
-    assert_equal '3', m2.shared_related_test_models.first.field1
-  end
-
-  def test_should_not_copy_shared_relations_simple_has_many_creation_case_as_default
+  def test_should_not_copy_relations_as_default_simple_has_many_creation_case
     m1 = create_model(:locale => 'ca')
     m1.unshared_related_test_models << UnsharedRelatedTestModel.create(:field1 => '1')
     m1.unshared_related_test_models << UnsharedRelatedTestModel.create(:field1 => '2')
@@ -41,7 +59,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal 2, UnsharedRelatedTestModel.count
   end
 
-  def test_should_not_copy_shared_relations_simple_has_many_update_case_as_default
+  def test_should_not_copy_relations_as_default_simple_has_many_update_case_as_default
     m1 = create_model(:locale => 'ca')
     m1.unshared_related_test_models << UnsharedRelatedTestModel.create(:field1 => '1')
     m1.unshared_related_test_models << UnsharedRelatedTestModel.create(:field1 => '2')
@@ -98,6 +116,22 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal 'en', newa.chain_test_model_b.chain_test_model_c.locale
     assert_equal a, a.chain_test_model_b.chain_test_model_c.chain_test_model_a
     assert_equal newa, newa.chain_test_model_b.chain_test_model_c.chain_test_model_a
+  end
+  
+  def test_should_copy_shared_relations_translatable_has_one_creation_case
+    m1 = OneOneTestModel.create(:locale => 'ca', :common => '2')
+    m1.one_one = OneOneTestModel.create(:common => '1', :locale => 'ca')
+    m1.save
+    m2 = m1.translate('en')
+
+    assert_not_nil m2.one_one
+    assert_not_nil m1.reload.one_one
+    assert_not_equal m1.one_one, m2.one_one
+    assert_equal m1.one_one.content_id, m2.one_one.content_id
+    assert_equal 'en', m2.one_one.locale
+    assert_equal 4, OneOneTestModel.count # 2 original + 2 translated
+    assert_equal 2, OneOneTestModel.count(:conditions => {:common => '1'})
+    assert_equal 2, OneOneTestModel.count(:conditions => {:common => '2'})
   end
   
 end

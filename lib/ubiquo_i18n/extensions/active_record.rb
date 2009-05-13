@@ -91,6 +91,11 @@ module UbiquoI18n
             self.class.translations(self)
           end
           
+          # Returns true if the class is marked as translatable
+          def is_translatable?
+            @translatable
+          end
+          
           # Creates a new instance of the translatable class, using the common
           # values from an instance sharing the same content_id
           # Returns a new independent instance if content_id is nil or not found
@@ -168,7 +173,7 @@ module UbiquoI18n
               self.class.reflections.select{|name, ref| ref.options[:translatable] == false}.each do |rel, values|
                   model_rel = model.send(rel)
                   record = [model_rel].flatten.first
-                  if record && record.class.instance_variable_get('@translatable')
+                  if record && record.class.is_translatable?
                     all_relationship_contents = []
                     [model_rel].flatten.each do |old_rel|
                       existing_translation = old_rel.translations.first(:conditions => {:locale => self.locale})
@@ -214,7 +219,7 @@ module UbiquoI18n
         
         # Adds :current_version => true to versionable models unless explicitly said :version option
         def find_with_locale_filter(*args)
-          if self.instance_variable_get('@translatable')
+          if self.is_translatable?
             options = args.extract_options!
             apply_locale_filter!(options)
             find_without_locale_filter(args.first, options)
@@ -224,7 +229,7 @@ module UbiquoI18n
         end
         
         def count_with_locale_filter(*args)
-          if self.instance_variable_get('@translatable')
+          if self.is_translatable?
             options = args.extract_options!
             apply_locale_filter!(options)
             count_without_locale_filter(args.first, options)
@@ -322,29 +327,19 @@ module UbiquoI18n
           klass.alias_method_chain :update, :translatable
           klass.alias_method_chain :create, :translatable
           klass.alias_method_chain :create, :i18n_content_id
-          klass.alias_method_chain :create, :locale
           
         end
         
         # proxy to add a new content_id if empty on creation
         def create_with_i18n_content_id
-          if self.class.instance_variable_get('@translatable_attributes')
+          if self.class.is_translatable?
             # we do this even if there is not currently any tr. attribute, 
-            # as long as @translatable_attributes is defined
+            # as long as is a translatable model
             unless self.content_id
               self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_content_id")
             end
           end
           create_without_i18n_content_id
-        end
-
-        # proxy to add a new content_id if empty on creation
-        def create_with_locale
-          if self.class.instance_variable_get('@translatable_attributes')
-            # we do this even if there is not currently any tr. attribute, 
-            # as long as @translatable_attributes is defined
-          end
-          create_without_locale
         end
         
         # Whenever we update existing content or create a translation, the expected behaviour is the following
@@ -361,7 +356,7 @@ module UbiquoI18n
         end
 
         def update_translations
-          if self.class.instance_variable_get('@translatable') && !@stop_translatable_propagation
+          if self.class.is_translatable? && !@stop_translatable_propagation
             # Update the translations
             self.translations.each do |translation|
               translation.instance_variable_set('@stop_translatable_propagation', true)

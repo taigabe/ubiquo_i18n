@@ -63,7 +63,7 @@ def create_test_model_backend
   
   # Models used to test extensions
   TestModel.class_eval do
-    translatable :field1#, :shared_relations => [:shared_related_test_models, :translatable_related_test_models]
+    translatable :field1
     has_many :related_test_models
     has_many :unshared_related_test_models
     has_many :shared_related_test_models, :class_name => "RelatedTestModel", :translatable => false
@@ -85,12 +85,12 @@ def create_test_model_backend
   end
   
   ChainTestModelA.class_eval do
-    translatable :field#, :shared_relations => :chain_test_model_cs
+    translatable :field
     belongs_to :chain_test_model_b
     has_many :chain_test_model_cs, :translatable => false
   end
   ChainTestModelB.class_eval do
-    translatable :field#, :shared_relations => :chain_test_model_as
+    translatable :field
     belongs_to :chain_test_model_c
     has_many :chain_test_model_as, :translatable => false
   end

@@ -7,7 +7,6 @@ module UbiquoI18n
       end
       
       def add_record_to_target_with_callbacks_with_translatable(record, &block)
-#        require 'ruby-debug';debugger
         if @reflection.options[:translatable] == false && !@owner.class.instance_variable_get('@is_translating_relations')
           @owner.class.instance_variable_set('@is_translating_relations', true)
           
@@ -20,8 +19,7 @@ module UbiquoI18n
                   if old_rel.class.instance_variable_get('@translatable')
                     existing_translation = old_rel.translations.first(:conditions => {:locale => self.locale})
 
-#                    require 'ruby-debug';debugger
-                    if !existing_translation && !old_rel.being_translated?
+                    unless existing_translation || old_rel.being_translated?
                       translated_rel = old_rel.translate(translation.locale)
                       translation_relationship_contents << translated_rel
                       translated_rel.save
@@ -35,7 +33,6 @@ module UbiquoI18n
                     translated_rel.save                    
                   end
                 end
-#                require 'ruby-debug';debugger
               translation.send(@reflection.name.to_s + '=', translation_relationship_contents)
             end
           rescue
@@ -45,7 +42,6 @@ module UbiquoI18n
           @owner.class.instance_variable_set('@is_translating_relations', false)
         else
           add_record_to_target_with_callbacks_without_translatable record, &block
-          ''
         end
       end
     end

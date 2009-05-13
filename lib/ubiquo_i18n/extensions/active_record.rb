@@ -31,36 +31,6 @@ module UbiquoI18n
           # timestamps are independent per translation unless set
           @translatable_attributes += [:created_at, :updated_at] unless options[:timestamps] == false
           
-          # relationships (excepting belongs_to) are not shared among translations unless specified
-          @translatable_shared_relations = case options[:shared_relations] 
-          when nil
-            []
-          when Array
-            options[:shared_relations]
-          else
-            [options[:shared_relations]]
-          end
-          
-#          @translatable_shared_relations.each do |shared_relation|
-#            define_method("add_record_to_target_with_callbacks_with_translation_update") do 
-#              add_record_to_target_with_callbacks_without_translation_update
-#              self.translations.each do |translation|
-#                pp 'hola'
-#
-#                old_relationship_contents = self.send(shared_relation)
-#                translation_relationship_contents = []
-#                [old_relationship_contents].flatten.each do |old_rel|
-#                  translation_relationship_contents << old_rel.clone
-#                end
-#                translation_relationship_contents  = translation_relationship_contents.first unless old_relationship_contents.is_a?(Array)
-#                translation.send(shared_relation.to_s + '=', translation_relationship_contents)
-#
-#                
-#              end 
-#            end
-#            #alias_method_chain :add_record_to_target_with_callbacks, :translation_update
-#          end
-
           # try to generate the attribute setter
           self.new.send(:locale=, :generate) rescue nil
           if instance_methods.include?('locale=') && !instance_methods.include?('locale_with_duality=')
@@ -133,10 +103,8 @@ module UbiquoI18n
 
           # Creates (saving) a new translation of self, with the common values filled in
           define_method('translate') do |locale|
-#            require 'ruby-debug';debugger
             self.while_being_translated lambda{
               new_translation = self.class.new
-#              require 'ruby-debug';debugger
               new_translation.locale = locale
               self.untranslatable_attributes.each_pair do |attr, value|
                 new_translation.send("#{attr}=", value)
@@ -199,12 +167,10 @@ module UbiquoI18n
               # act on reflections where translatable == false
               self.class.reflections.select{|name, ref| ref.options[:translatable] == false}.each do |rel, values|
                   model_rel = model.send(rel)
-                  # TODO i have doubts if the following line is what is needed
                   record = [model_rel].flatten.first
                   if record && record.class.instance_variable_get('@translatable')
                     all_relationship_contents = []
                     [model_rel].flatten.each do |old_rel|
-#                      require 'ruby-debug';debugger
                       existing_translation = old_rel.translations.first(:conditions => {:locale => self.locale})
                       unless existing_translation || old_rel.being_translated?
                         translated_rel = old_rel.translate(self.locale)
@@ -212,7 +178,6 @@ module UbiquoI18n
                         translated_rel.save
                       else 
                         if old_rel.being_translated?
-#                          require 'ruby-debug';debugger
                         # maybe it doesn't exist in db but it does in memory 
                         # it means that is currently being translated and there is something self-referential
                           ::ActiveRecord::Base.instance_variable_get('@current_translations_on_process').each do |ct|
@@ -243,25 +208,6 @@ module UbiquoI18n
             end
             self.class.instance_variable_set('@is_translating_relations', false)
             self.translation_on_process(false)
-          end
-
-          # Looks for defined shared relations and performs a chain-update on them
-          define_method('update_translatable_shared_relations') do
-#            unless self.class.instance_variable_get('@translatable_shared_relations').blank?
-#              if model = self.translations.first
-#                self.class.instance_variable_get('@translatable_shared_relations').each do |rel|
-#                  if self.send(rel).blank? # nothing already linked
-#                    model_rel = model.send(rel)
-#                    if model_rel.class.instance_variable_get('@translatable')
-#                      existing_translation = model_rel.translations.first(:locale => self.locale)
-#                      unless existing_translation
-#                        model_rel.translate(self.locale)
-#                      end
-#                    end
-#                  end
-#                end
-#              end
-#            end
           end
           
         end
@@ -352,9 +298,6 @@ module UbiquoI18n
             class << self
               alias_method_chain :find, :locale_filter
               alias_method_chain :count, :locale_filter
-#              ASSOCIATION_TYPES.each do |type|
-#                alias_method_chain type, :translatable
-#              end
             end
           end
           
@@ -370,28 +313,6 @@ module UbiquoI18n
             klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
           end
         end
-
-#        ASSOCIATION_TYPES.each do |type|
-#          module_eval %{
-#            def #{type}(name, options = {})
-#              super
-#              translatable_manage_association(reflect_on_association(name))
-#            end
-#          }
-#        end
-#        
-#        def translatable_manage_association(reflection)
-#          if (reflection.options[:translatable])
-#            pp self
-#                        old_relationship_contents = self.send(shared_relation)
-#                translation_relationship_contents = []
-#                [old_relationship_contents].flatten.each do |old_rel|
-#                  translation_relationship_contents << old_rel.clone
-#                end
-#                translation_relationship_contents  = translation_relationship_contents.first unless old_relationship_contents.is_a?(Array)
-#                translation.send(shared_relation.to_s + '=', translation_relationship_contents)
-#          end
-#        end
 
       end
       
@@ -446,7 +367,6 @@ module UbiquoI18n
               translation.instance_variable_set('@stop_translatable_propagation', true)
               begin 
                 translation.update_attributes untranslatable_attributes
-#                translation.update_translatable_shared_relations
               rescue
                 translation.instance_variable_set('@stop_translatable_propagation', false)
                 raise

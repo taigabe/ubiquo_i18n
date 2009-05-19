@@ -2,11 +2,11 @@
 <%= render :partial => "shared/ubiquo/feedback" %>
 
 <% form_for(ubiquo_locales_path, :html => {:method => :put}) do |form| %>
-  <%= render(:partial => "shared/ubiquo/lists/standard", :locals => {
+  <%= default_locale = Locale.default;
+      render(:partial => "shared/ubiquo/lists/standard", :locals => {
           :name => 'locale',
           :headers => [:native_name, :english_name, :is_active, :is_default],
           :rows => @locales.collect do |locale| 
-            default_locale = Locale.default
             {
               :id => locale.id, 
               :columns => [

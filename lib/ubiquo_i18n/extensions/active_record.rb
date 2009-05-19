@@ -49,6 +49,12 @@ module UbiquoI18n
 
           end
           
+          unless instance_methods.include?("in_locale")
+            define_method('in_locale') do |*locales|
+              self.class.locale(*locales).first(:conditions => {:content_id => self.content_id})
+            end
+          end
+          
           # usage:
           # find all content in any locale: Model.locale(:ALL)
           # find spanish content: Model.locale('es')

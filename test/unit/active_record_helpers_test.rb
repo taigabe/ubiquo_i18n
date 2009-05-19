@@ -233,6 +233,29 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal 'val', ca.field2
     assert ca.new_record?
   end
+  
+  def test_in_locale_instance_method_with_one_locale
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
+    assert_equal es.id, en.in_locale('es').id
+  end
+  
+  def test_in_locale_instance_method_with_two_locales
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
+    assert_equal es.id, en.in_locale('es', 'en').id
+    assert_equal en.id, en.in_locale('en', 'es').id
+    assert_equal en.id, en.in_locale('ca', 'en').id
+  end
+  
+  def test_in_locale_instance_method_with_all_locales
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
+    assert_equal es.id, en.in_locale('es', :ALL).id
+    assert_equal en.id, en.in_locale('en', :ALL).id
+    assert_equal en.id, en.in_locale('ca', :ALL).id
+    assert_equal es.id, en.in_locale('ca', 'es', :ALL).id
+  end
 end
 
 create_test_model_backend

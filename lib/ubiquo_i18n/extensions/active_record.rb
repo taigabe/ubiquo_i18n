@@ -220,6 +220,11 @@ module UbiquoI18n
             self.translation_on_process(false)
           end
           
+          define_method 'destroy_content' do 
+            self.translations.destroy_all
+            self.destroy
+          end
+          
         end
         
         # Returns true if the class is marked as translatable

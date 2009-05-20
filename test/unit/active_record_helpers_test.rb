@@ -256,6 +256,17 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal en.id, en.in_locale('ca', :ALL).id
     assert_equal es.id, en.in_locale('ca', 'es', :ALL).id
   end
+  
+  def test_destroy_contents
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
+    ca = create_model(:content_id => 1, :locale => 'ca', :field1 => 'val', :field2 => 'val')
+    assert_equal 3, TestModel.count
+    es.destroy
+    assert_equal 2, TestModel.count
+    ca.destroy_content
+    assert_equal 0, TestModel.count    
+  end
 end
 
 create_test_model_backend

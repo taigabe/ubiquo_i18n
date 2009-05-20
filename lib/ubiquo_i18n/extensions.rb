@@ -16,3 +16,5 @@ ActionController::Base.helper(UbiquoI18n::Extensions::Helpers)
 #ActiveRecord::NamedScope::Scope.class_eval do
 #  attr_accessor :locale_scoped
 #end
+ActionController::TestCase.send(:include, UbiquoI18n::Extensions::TestCase)
+ActionController::TestCase.setup(:set_session_locale)

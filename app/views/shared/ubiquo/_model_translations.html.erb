@@ -6,7 +6,7 @@
       <li>
         <%= l.native_name %>
         <% if translated = translations.select{|t| t.locale == l.iso_code}.first %>
-          <%= link_to t("ubiquo.edit"), url_for(params.merge(:id => translated.id, :locale => l.iso_code, :preview_id => nil)) %>
+          <%= link_to t("ubiquo.edit"), url_for(params.merge(:action => :edit, :id => translated.id, :locale => l.iso_code, :preview_id => nil)) %>
           <%= link_to t("ubiquo.preview"), url_for(params.merge(:preview_id => translated.id)) %>
         <% else %>
           <%= link_to t("ubiquo.translate"), url_for(params.merge(:action => :new, :id => nil, :from => model.content_id, :locale => l.iso_code, :preview_id => model.id)) %>

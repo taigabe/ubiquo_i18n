@@ -274,7 +274,10 @@ module UbiquoI18n
             locales.uniq!
             all_locales = locales.delete(:ALL)
             
-            locale_conditions = all_locales ? "" : ["#{self.table_name}.locale in (?)", locales]
+            # add untranslatable instances if necessary
+            locales << :any unless all_locales || locales.size == 0
+            
+            locale_conditions = all_locales ? "" : ["#{self.table_name}.locale in (?)", locales.map(&:to_s)]
 
             # expand our sql to match the potential conditions
             join_dependency = ::ActiveRecord::Associations::ClassMethods::JoinDependency.new(self, merge_includes(scope(:find, :include), options[:include]), options[:joins])
@@ -288,7 +291,7 @@ module UbiquoI18n
             locale_filter = ["#{self.table_name}.id in (" +
                 "SELECT distinct on (#{self.table_name}.content_id) #{self.table_name}.id " + 
                 "FROM #{self.table_name} " + joins_sql.to_s + conditions_sql.to_s +
-                "ORDER BY #{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")})", *locales]
+                "ORDER BY #{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")})", *locales.map(&:to_s)]
             options[:conditions] = merge_conditions(options[:conditions], locale_filter)
           end
         end

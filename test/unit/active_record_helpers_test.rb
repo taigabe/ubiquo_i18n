@@ -122,6 +122,19 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [model], TestModel.locale('es', :ALL)
   end
   
+  def test_search_by_locale_with_special_any_locale
+    model = create_model(:locale => 'any', :field1 => '1')
+    assert_equal [model], TestModel.locale('es')
+    assert_equal 1, TestModel.locale('es').count
+    assert_equal [model], TestModel.locale(:ALL)
+    assert_equal 1, TestModel.locale(:ALL).count
+  end
+  
+  def test_search_by_locale_should_work_with_symbols
+    model = create_model(:locale => 'es', :field1 => '1')
+    assert_equal [model], TestModel.locale(:es)    
+    assert_equal 1, TestModel.locale(:es).count
+  end
 
   def test_search_translations
     es_m1 = create_model(:content_id => 1, :locale => 'es')

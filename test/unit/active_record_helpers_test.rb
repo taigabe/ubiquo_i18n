@@ -239,6 +239,15 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert ca.new_record?
   end
   
+  def test_translate_with_copy_all_should_copy_common_attributes
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    ca = TestModel.translate(1, 'ca', :copy_all => true)
+    assert_equal es.content_id, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert_equal 'val', ca.field1
+    assert_equal 'val', ca.field2    
+  end
+  
   def test_in_locale_instance_method_with_one_locale
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')

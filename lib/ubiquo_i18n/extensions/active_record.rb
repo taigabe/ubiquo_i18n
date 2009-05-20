@@ -100,22 +100,32 @@ module UbiquoI18n
           # Creates a new instance of the translatable class, using the common
           # values from an instance sharing the same content_id
           # Returns a new independent instance if content_id is nil or not found
-          def translate(content_id, locale)
+          # Options can be one of these:
+          #   :copy_all => if true, will copy all the attributes from the original, even the translatable ones
+          def translate(content_id, locale, options = {})
             original = find_by_content_id(content_id)
-            new_translation = original ? original.translate(locale) : new
+            new_translation = original ? original.translate(locale, options) : new
             new_translation.locale = locale
             new_translation
           end
 
           # Creates (saving) a new translation of self, with the common values filled in
-          define_method('translate') do |locale|
+          define_method('translate') do |*attrs|
+            locale = attrs.first
+            options = attrs.extract_options!
+            
             self.while_being_translated lambda{
               new_translation = self.class.new
               new_translation.locale = locale
-              self.untranslatable_attributes.each_pair do |attr, value|
+              
+              # copy of attributes
+              clonable_attributes = options[:copy_all] ? :attributes : :untranslatable_attributes
+              self.send(clonable_attributes).each_pair do |attr, value|
                 new_translation.send("#{attr}=", value)
               end
-              new_translation.copy_translatable_shared_relations_from self
+              
+              # copy of relations
+              new_translation.copy_translatable_shared_relations_from self              
               new_translation
             }
           end

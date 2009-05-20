@@ -117,6 +117,11 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal_set ["10", "20"], TestModel.locale('es', :ALL).all(:select => 'COUNT(*) as numvalues', :group => :field1).map(&:numvalues)
   end
   
+  def test_search_by_locale_without_explicit_find
+    model = create_model(:locale => 'ca', :field1 => '1')
+    assert_equal [model], TestModel.locale('es', :ALL)
+  end
+  
 
   def test_search_translations
     es_m1 = create_model(:content_id => 1, :locale => 'es')

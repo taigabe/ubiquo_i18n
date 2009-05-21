@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + "/../test_helper.rb"
 
 class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
 
-  
+
   def test_simple_filter
     create_model(:content_id => 1, :locale => 'es')
     create_model(:content_id => 1, :locale => 'ca')
@@ -42,6 +42,15 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     # :ALL position is indifferent
     assert_equal %w{es en}, TestModel.locale(:ALL, 'en').map(&:locale)
   end
+  
+  def test_search_with_chained_locale_call
+    create_model(:content_id => 1, :locale => 'es')
+    create_model(:content_id => 2, :locale => 'ca')
+    create_model(:content_id => 3, :locale => 'en')
+    
+    assert_equal %w{ca}, TestModel.locale('en','es', :ALL).locale('es','ca').locale('ca').map(&:locale)
+  end
+
   
   def test_search_by_content
     create_model(:content_id => 1, :locale => 'es')
@@ -119,7 +128,10 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   
   def test_search_by_locale_without_explicit_find
     model = create_model(:locale => 'ca', :field1 => '1')
-    assert_equal [model], TestModel.locale('es', :ALL)
+    locale_evaled = TestModel.locale('es')
+    no_evaled = TestModel.all 
+    assert_equal [], locale_evaled
+    assert_equal [model], no_evaled
   end
   
   def test_search_by_locale_with_special_any_locale

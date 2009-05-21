@@ -63,10 +63,7 @@ module UbiquoI18n
           # find all content in any locale: Model.locale(:ALL)
           #
           named_scope :locale, lambda{|*locales|
-            @locale_namespaced = true
-            @current_locale_list ||= []
-            @current_locale_list += locales
-            {}
+            {:locale_scoped => true, :locale_list => locales}
           }
                     
           # usage:
@@ -264,10 +261,10 @@ module UbiquoI18n
         end
         
         def apply_locale_filter!(options)        
-          apply_locale_filter = @locale_namespaced
+          apply_locale_filter = @locale_scoped
           locales = @current_locale_list
           # set this find as dispatched
-          @locale_namespaced = false
+          @locale_scoped = false
           @current_locale_list = []
           if apply_locale_filter
             # build locale restrictions

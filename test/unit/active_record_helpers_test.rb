@@ -306,6 +306,19 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     ca.destroy_content
     assert_equal 0, TestModel.count    
   end
+  
+  def test_compare_locales
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
+    any = create_model(:content_id => 2, :locale => 'any', :field1 => 'val', :field2 => 'val')
+    assert es.locale?('es')
+    assert en.locale?('es', 'en')
+    assert !en.locale?('ca', 'es')
+    assert !es.locale?('ca')
+    assert any.locale?('en')
+    assert any.locale?('jp', 'fr', 'ca', 'es')
+    assert any.locale?('any')
+  end
 end
 
 create_test_model_backend

@@ -55,6 +55,11 @@ module UbiquoI18n
             end
           end
           
+          # checks if instance has a locale given a locales list         
+          define_method('locale?') do |*asked_locales|
+            asked_locales.include?(self.locale) || self.locale == 'any'
+          end
+         
           # usage:
           # find all content in any locale: Model.locale(:ALL)
           # find spanish content: Model.locale('es')
@@ -410,7 +415,7 @@ module UbiquoI18n
           end
           attrs
         end
-
+        
       end
 
     end

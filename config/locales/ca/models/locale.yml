@@ -5,7 +5,7 @@ ca:
     attributes:
       locale:
         iso_code: "Codi ISO"
-        english_name: "Nom anglés"
+        english_name: "Nom anglès"
         native_name: "Nom natiu"
         is_active: "Actiu"
         is_default: "Valor per defecte"

@@ -112,5 +112,5 @@ def create_test_model_backend
 end
 
 if ActiveRecord::Base.connection.class.to_s == "ActiveRecord::ConnectionAdapters::PostgreSQLAdapter"
-  conn.client_min_messages = "ERROR"
+  ActiveRecord::Base.connection.client_min_messages = "ERROR"
 end

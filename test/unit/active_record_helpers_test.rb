@@ -319,6 +319,20 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert any.locale?('jp', 'fr', 'ca', 'es')
     assert any.locale?('any')
   end
+  
+  def test_compare_locales_without_any
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
+    any = create_model(:content_id => 2, :locale => 'any', :field1 => 'val', :field2 => 'val')
+    assert es.locale?('es', :skip_any => true)
+    assert en.locale?('es', 'en', :skip_any => true)
+    assert !en.locale?('ca', 'es', :skip_any => true)
+    assert !es.locale?('ca', :skip_any => true)
+    assert !any.locale?('en', :skip_any => true)
+    assert !any.locale?('jp', 'fr', 'ca', 'es', :skip_any => true)
+    assert any.locale?('any', :skip_any => true)
+  end
+  
 end
 
 create_test_model_backend

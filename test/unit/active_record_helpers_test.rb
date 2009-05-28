@@ -116,7 +116,6 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_related_model(:test_model => model, :field1 => '2')
     
     assert_equal [model], TestModel.scope_for_test(1).all
-    require 'ruby-debug';debugger
     assert_equal [], TestModel.locale('es', :ALL).scope_for_test(10).all
     assert_equal [], TestModel.scope_for_test(10).locale('es', :ALL).all
     assert_equal [model], TestModel.locale('es', :ALL).scope_for_test(1).all

@@ -23,9 +23,11 @@ end
   Object.const_set(c, Class.new(ActiveRecord::Base)) unless Object.const_defined? c
 end
 
+Object.const_set("InheritanceTestModel", Class.new(ActiveRecord::Base)) unless Object.const_defined? "InheritanceTestModel"
+
 def create_test_model_backend
   # Creates a test table for AR things work properly
-  %w{test_models related_test_models unshared_related_test_models translatable_related_test_models chain_test_model_as chain_test_model_bs chain_test_model_cs one_one_test_models}.each do |table|
+  %w{test_models related_test_models unshared_related_test_models translatable_related_test_models chain_test_model_as chain_test_model_bs chain_test_model_cs one_one_test_models inheritance_test_models}.each do |table|
     if ActiveRecord::Base.connection.tables.include?(table)
       ActiveRecord::Base.connection.drop_table table
     end
@@ -33,6 +35,7 @@ def create_test_model_backend
   ActiveRecord::Base.connection.create_table :test_models, :translatable => true do |t|
     t.string :field1
     t.string :field2
+    t.integer :related_test_model_id
   end
   ActiveRecord::Base.connection.create_table :related_test_models do |t|
     t.integer :test_model_id
@@ -64,18 +67,31 @@ def create_test_model_backend
     t.string :common
   end
   
+  ActiveRecord::Base.connection.create_table :inheritance_test_models, :translatable => true do |t|
+    t.integer :related_test_model_id
+    t.string :field
+    t.string :type
+  end
+  
   
   # Models used to test extensions
   TestModel.class_eval do
+    belongs_to :related_test_model
+    
     translatable :field1
     has_many :related_test_models
     has_many :unshared_related_test_models
     has_many :shared_related_test_models, :class_name => "RelatedTestModel", :translatable => false
     has_many :translatable_related_test_models, :translatable => false
+    
+    has_many :inheritance_test_models, :translatable => true
   end
   
   RelatedTestModel.class_eval do
     belongs_to :test_model
+    
+    has_many :inheritance_test_models, :translatable => true
+    has_many :test_models, :translatable => true
   end
 
   UnsharedRelatedTestModel.class_eval do
@@ -109,6 +125,22 @@ def create_test_model_backend
     belongs_to :one_one, :translatable => false, :foreign_key => 'one_one_test_model_id', :class_name => 'OneOneTestModel'
     has_one :one_one_test_model, :translatable => false
   end
+  
+  InheritanceTestModel.class_eval do
+    translatable :field
+    belongs_to :related_test_model
+  end
+  
+  %w{FirstSubclass SecondSubclass}.each do |c|
+    Object.const_set(c, Class.new(InheritanceTestModel)) unless Object.const_defined? c
+  end
+  
+  FirstSubclass.class_eval do
+  end
+  
+  SecondSubclass.class_eval do
+  end
+
 end
 
 if ActiveRecord::Base.connection.class.to_s == "ActiveRecord::ConnectionAdapters::PostgreSQLAdapter"

@@ -20,11 +20,12 @@ module UbiquoI18n
               end
             end
             # tell the model that we are heading there
-            klass.instance_variable_set('@locale_scoped', true)
-            current_locale_list = klass.instance_variable_get('@current_locale_list')
+            good_klass = klass.really_translatable_class
+            good_klass.instance_variable_set('@locale_scoped', true)
+            current_locale_list = good_klass.instance_variable_get('@current_locale_list')
             current_locale_list ||= []
             current_locale_list += proxy_options[:locale_list]
-            klass.instance_variable_set('@current_locale_list', current_locale_list)
+            good_klass.instance_variable_set('@current_locale_list', current_locale_list)
           end
           # clear these flag options
           @proxy_options = {}

@@ -20,9 +20,10 @@ module UbiquoI18n
         #   :timestamps => set to false to avoid translatable (i.e. independent per translation) timestamps
 
         def translatable(*attrs)
+          @really_translatable_class = self
           @translatable = true
           # inherit translatable attributes
-          @translatable_attributes = self.superclass.instance_variable_get('@translatable_attributes') || []
+          @translatable_attributes = self.translatable_attributes || []
           # extract and parse options
           options = attrs.extract_options!
           # add attrs from this class
@@ -184,7 +185,7 @@ module UbiquoI18n
           
           # Looks for defined shared relations and performs a chain-update on them
           define_method('copy_translatable_shared_relations_from') do |model|
-            self.class.instance_variable_set('@is_translating_relations', true)
+            self.class.is_translating_relations = true
             self.translation_on_process true
             begin
               # act on reflections where translatable == false
@@ -229,11 +230,11 @@ module UbiquoI18n
                   self.send(rel.to_s + '=', all_relationship_contents)
               end
             rescue
-              self.class.instance_variable_set('@is_translating_relations', false)
+              self.class.is_translating_relations = false
               self.translation_on_process(false)
               raise
             end
-            self.class.instance_variable_set('@is_translating_relations', false)
+            self.class.is_translating_relations = false
             self.translation_on_process(false)
           end
           
@@ -244,10 +245,50 @@ module UbiquoI18n
           
         end
         
+        def instance_variable_inherited_get(var_name, method_name = nil)
+          method_name ||= var_name
+          instance_variable_get("@#{var_name}") ||
+            (instance_variable_get("@#{var_name}").nil? &&
+            self.superclass.respond_to?(method_name) &&
+            self.superclass.send(method_name))
+        end
+        def instance_variable_inherited_set(value, var_name, method_name = nil)
+          method_name ||= var_name
+          if !instance_variable_get("@#{var_name}").nil?
+            instance_variable_set("@#{var_name}", value)
+           elsif self.superclass.respond_to?(method_name)
+             self.superclass.send(method_name, value)
+          end
+        end
+
         # Returns true if the class is marked as translatable
         def is_translatable?
-          @translatable || @translatable.nil? && self.superclass.respond_to?(:is_translatable?) && self.superclass.is_translatable?
-        end        
+          instance_variable_inherited_get("translatable", "is_translatable?")
+        end  
+        
+        def translatable_attributes
+          instance_variable_inherited_get("translatable_attributes")
+        end   
+        
+        # Returns the class that really calls the translatable method
+        def really_translatable_class
+          instance_variable_inherited_get("really_translatable_class")
+        end 
+        
+        def is_translating_relations
+          instance_variable_inherited_get("is_translating_relations")
+        end
+        def is_translating_relations=(value)
+          instance_variable_inherited_set(value, "is_translating_relations", "is_translating_relations=")
+        end
+        
+        def stop_translatable_propagation
+          instance_variable_inherited_get("stop_translatable_propagation")
+        end
+        def stop_translatable_propagation=(value)
+          instance_variable_inherited_set(value, "stop_translatable_propagation", "stop_translatable_propagation=")
+        end
+             
         
         # Adds :current_version => true to versionable models unless explicitly said :version option
         def find_with_locale_filter(*args)
@@ -392,7 +433,6 @@ module UbiquoI18n
           update_without_translatable
           update_translations
         end
-
         def update_translations
           if self.class.is_translatable? && !@stop_translatable_propagation
             # Update the translations
@@ -410,7 +450,7 @@ module UbiquoI18n
         end
         
         def untranslatable_attributes_names
-          translatable_attributes = (self.class.instance_variable_get('@translatable_attributes') || []) + 
+          translatable_attributes = (self.class.translatable_attributes || []) + 
             (self.class.instance_variable_get('@global_translatable_attributes') || []) +
             (self.class.reflections.select{|name, ref| ref.options[:translatable] != false}.map{|name, ref| ref.primary_key_name})
           attribute_names - translatable_attributes.map{|attr| attr.to_s}

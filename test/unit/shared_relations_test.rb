@@ -134,6 +134,46 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal 2, OneOneTestModel.count(:conditions => {:common => '2'})
   end
   
+  def test_should_get_translated_has_many_elements_from_a_non_translated_model
+    non_translated = RelatedTestModel.create
+    
+    translated_1, translated_2 = [
+      TestModel.create(:content_id => 1, :locale => 'en', :related_test_model => non_translated),
+      TestModel.create(:content_id => 1, :locale => 'es', :related_test_model => non_translated)
+    ]
+    
+    assert non_translated.valid?
+    assert translated_1.valid?
+    assert translated_2.valid?
+    
+    assert_equal [translated_1, translated_2], non_translated.test_models
+    assert_equal [translated_1], non_translated.test_models.locale('en')
+    assert_equal [translated_2], non_translated.test_models.locale('es')
+  end
+  
+  
+  def test_has_many_to_translated_sti
+    TestModel.destroy_all
+    InheritanceTestModel.destroy_all
+    
+    test_model = RelatedTestModel.create
+    first_inherited = FirstSubclass.create(:field => "Hi", :locale => "en", :related_test_model => test_model)
+
+    assert_equal 1, test_model.inheritance_test_models.size
+    
+    second_inherited = first_inherited.translate
+    second_inherited.field = "Hola"
+    second_inherited.locale = 'es'
+    second_inherited.related_test_model = test_model
+
+    second_inherited.save
+
+    assert_equal 2, test_model.reload.inheritance_test_models.size
+    assert_equal "Hi", test_model.reload.inheritance_test_models.locale("en").first.field
+    assert_equal "Hola", test_model.reload.inheritance_test_models.locale("es").first.field
+    assert_equal "Hi", test_model.reload.inheritance_test_models.locale("en", 'es').first.field
+    assert_equal "Hola", test_model.reload.inheritance_test_models.locale("es", 'en').first.field
+  end
 end
 
 create_test_model_backend

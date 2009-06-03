@@ -6,6 +6,9 @@ module UbiquoI18n
         klass.alias_method_chain :method_missing, :locale_scope
       end
       
+      # This method is executed when a named scope is being resolved. It will
+      # check if this scope is the locale() scope, and if so, will set all
+      # the necessary for the actual locale filter be applied
       def method_missing_with_locale_scope(method, *args, &block)
         if proxy_options[:locale_scoped] && proxy_options[:locale_list]
           # this is a locale() call

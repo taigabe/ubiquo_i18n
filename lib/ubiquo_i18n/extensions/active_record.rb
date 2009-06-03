@@ -245,6 +245,8 @@ module UbiquoI18n
           
         end
         
+        # Returns the value for the var_name instance variable, or if this is nil,
+        # follow the superclass chain to ask the value        
         def instance_variable_inherited_get(var_name, method_name = nil)
           method_name ||= var_name
           instance_variable_get("@#{var_name}") ||
@@ -252,6 +254,9 @@ module UbiquoI18n
             self.superclass.respond_to?(method_name) &&
             self.superclass.send(method_name))
         end
+
+        # Sets the value for the var_name instance variable, or if this is nil,
+        # follow the superclass chain to set the value        
         def instance_variable_inherited_set(value, var_name, method_name = nil)
           method_name ||= var_name
           if !instance_variable_get("@#{var_name}").nil?
@@ -266,6 +271,7 @@ module UbiquoI18n
           instance_variable_inherited_get("translatable", "is_translatable?")
         end  
         
+        # Returns a list of translatable attributes for this class
         def translatable_attributes
           instance_variable_inherited_get("translatable_attributes")
         end   
@@ -275,22 +281,28 @@ module UbiquoI18n
           instance_variable_inherited_get("really_translatable_class")
         end 
         
+        # Returns true if this class is currently translating relations
         def is_translating_relations
           instance_variable_inherited_get("is_translating_relations")
         end
+        
+        # Sets the value of the is_translating_relations flag
         def is_translating_relations=(value)
           instance_variable_inherited_set(value, "is_translating_relations", "is_translating_relations=")
         end
         
+        # Returns true if the translatable propagation has been set to stop
         def stop_translatable_propagation
           instance_variable_inherited_get("stop_translatable_propagation")
         end
+        
+        # Setter for the stop_translatable_propagation_flag
         def stop_translatable_propagation=(value)
           instance_variable_inherited_set(value, "stop_translatable_propagation", "stop_translatable_propagation=")
         end
              
         
-        # Adds :current_version => true to versionable models unless explicitly said :version option
+        # Applies the locale filter if needed, then performs the normal find method
         def find_with_locale_filter(*args)
           if self.is_translatable?
             options = args.extract_options!
@@ -301,6 +313,7 @@ module UbiquoI18n
           end
         end
         
+        # Applies the locale filter if needed, then performs the normal count method
         def count_with_locale_filter(*args)
           if self.is_translatable?
             options = args.extract_options!
@@ -311,6 +324,65 @@ module UbiquoI18n
           end
         end
         
+        
+        # Attributes that are always 'translated' (not copied between languages)
+        (@global_translatable_attributes ||= []) << :locale << :content_id
+
+        # Used by third parties to add fields that should always 
+        # be independent between different languages 
+        def add_translatable_attributes(*args)
+          @global_translatable_attributes += args
+        end
+        
+        # Define scopes to limit the automatic update of common fields to instances
+        # that have the same value for each scope (as a field name)
+        @translatable_scopes ||= [] 
+
+        # Used by third parties to add scopes for translations updates of common fields
+        # It accepts two formats for condition:
+        # - A String with a sql where condition (e.g. is_active = 1)
+        # - A Proc that will be called with the current element argument and
+        #   that should return a string (e.g. lambda{|el| "table.field = #{el.field + 1}"})
+        def add_translatable_scope(condition)
+          @translatable_scopes << condition
+        end
+        
+        @@translatable_inheritable_instance_variables = %w{global_translatable_attributes translatable_scopes}
+
+        ASSOCIATION_TYPES = %w{ has_one belongs_to has_many has_and_belongs_to_many }
+
+        def self.extended(klass)
+          # Ensure that the needed variables are inherited
+          @@translatable_inheritable_instance_variables.each do |inheritable|
+            klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+          end
+          
+          # Aliases the find and count methods to apply the locale filter
+          klass.class_eval do
+            class << self
+              alias_method_chain :find, :locale_filter
+              alias_method_chain :count, :locale_filter
+            end
+          end
+          
+          # Accept the :translatable option when defining associations
+          ASSOCIATION_TYPES.each do |type|
+            klass.send("valid_keys_for_#{type}_association") << :translatable
+          end
+        end
+        
+        def inherited(klass)
+          super
+          @@translatable_inheritable_instance_variables.each do |inheritable|
+            klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+          end
+        end
+
+        private 
+        
+        # This method is the one that actually applies the locale filter
+        # This means that if you use .locale(..), you'll end up here,
+        # when the results are actually delivered (not in call time)
         def apply_locale_filter!(options)        
           apply_locale_filter = @locale_scoped
           locales = @current_locale_list
@@ -344,57 +416,6 @@ module UbiquoI18n
             ids = ids.map{|id| id.id.to_i}
 
             options[:conditions] = merge_conditions(options[:conditions], {:id => ids})
-          end
-        end
-
-        
-        # Attributes that are always 'translated' (not copied between languages)
-        (@global_translatable_attributes ||= []) << :locale << :content_id
-
-        # Used by third parties to add fields that should always 
-        # be independent between different languages 
-        def add_translatable_attributes(*args)
-          @global_translatable_attributes += args
-        end
-        
-        # Define scopes to limit the automatic update of common fields to instances
-        # that have the same value for each scope (as a field name)
-        @translatable_scopes ||= [] 
-
-        # Used by third parties to add scopes for translations updates of common fields
-        # It accepts two formats for condition:
-        # - A String with a sql where condition (e.g. is_active = 1)
-        # - A Proc that will be called with the current element argument and
-        #   that should return a string (e.g. lambda{|el| "table.field = #{el.field + 1}"})
-        def add_translatable_scope(condition)
-          @translatable_scopes << condition
-        end
-        
-        @@translatable_inheritable_instance_variables = %w{global_translatable_attributes translatable_scopes}
-
-        ASSOCIATION_TYPES = %w{ has_one belongs_to has_many has_and_belongs_to_many }
-
-        def self.extended(klass)
-          @@translatable_inheritable_instance_variables.each do |inheritable|
-            klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
-          end
-          klass.class_eval do
-            class << self
-              alias_method_chain :find, :locale_filter
-              alias_method_chain :count, :locale_filter
-            end
-          end
-          
-          # Accept the :translatable option when defining associations
-          ASSOCIATION_TYPES.each do |type|
-            klass.send("valid_keys_for_#{type}_association") << :translatable
-          end
-        end
-        
-        def inherited(klass)
-          super
-          @@translatable_inheritable_instance_variables.each do |inheritable|
-            klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
           end
         end
 

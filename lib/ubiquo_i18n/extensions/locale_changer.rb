@@ -7,6 +7,7 @@ module UbiquoI18n
       end
       
       module InstanceMethods
+        # Returns the current locale, and sets it in the session if it wasn't there
         def current_locale
           @current_locale ||= params[:locale] || session[:locale] || Locale.default
           session[:locale] = @current_locale

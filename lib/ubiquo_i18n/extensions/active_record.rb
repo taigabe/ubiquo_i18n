@@ -324,7 +324,7 @@ module UbiquoI18n
           end
         end
         
-        
+
         # Attributes that are always 'translated' (not copied between languages)
         (@global_translatable_attributes ||= []) << :locale << :content_id
 
@@ -405,15 +405,16 @@ module UbiquoI18n
             
             # find the final IDs
             ids = find(:all, {
-                :select => "distinct on (#{self.table_name}.content_id) #{self.table_name}.id ",
+                :select => "#{self.table_name}.id, #{self.table_name}.content_id ",
                 :order => sanitize_sql_for_conditions(["#{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")}", *locales.map(&:to_s)]),
                 :conditions => merge_conditions(locale_conditions, options[:conditions]),
                 :include => merge_includes(scope(:find, :include), options[:include]),
                 :joins => options[:joins]
               })
             
-            #get only IDs
-            ids = ids.map{|id| id.id.to_i}
+            #get only one ID per content_id
+            content_ids = {}
+            ids = ids.select{ |id| content_ids[id.content_id].nil? ? content_ids[id.content_id] = id : false }.map{|id| id.id.to_i}
 
             options[:conditions] = merge_conditions(options[:conditions], {:id => ids})
           end
@@ -436,7 +437,7 @@ module UbiquoI18n
             # we do this even if there is not currently any tr. attribute, 
             # as long as is a translatable model
             unless self.content_id
-              self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_content_id")
+              self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_$_content_id")
             end
           end
           create_without_i18n_content_id

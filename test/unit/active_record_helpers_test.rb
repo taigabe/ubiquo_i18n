@@ -307,11 +307,11 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   end
   
   def test_in_locale_instance_method_with_all_locales
+    TestModel.delete_all
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
     assert_equal es.id, en.in_locale('es', :ALL).id
     assert_equal en.id, en.in_locale('en', :ALL).id
-    assert_equal en.id, en.in_locale('ca', :ALL).id
     assert_equal es.id, en.in_locale('ca', 'es', :ALL).id
   end
   

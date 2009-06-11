@@ -404,14 +404,18 @@ module UbiquoI18n
             locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
             
             # find the final IDs
-            ids = find(:all, {
-                :select => "#{self.table_name}.id, #{self.table_name}.content_id ",
-                :order => sanitize_sql_for_conditions(["#{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")}", *locales.map(&:to_s)]),
-                :conditions => merge_conditions(locale_conditions, options[:conditions]),
-                :include => merge_includes(scope(:find, :include), options[:include]),
-                :joins => options[:joins]
-              })
+            ids = nil
             
+            #removes paginator scope.
+            with_exclusive_scope(:find => {:limit => nil, :offset => nil}) do
+              ids = find(:all, {
+                  :select => "#{self.table_name}.id, #{self.table_name}.content_id ",
+                  :order => sanitize_sql_for_conditions(["#{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")}", *locales.map(&:to_s)]),
+                  :conditions => merge_conditions(locale_conditions, options[:conditions]),
+                  :include => merge_includes(scope(:find, :include), options[:include]),
+                  :joins => options[:joins]
+                })
+            end
             #get only one ID per content_id
             content_ids = {}
             ids = ids.select{ |id| content_ids[id.content_id].nil? ? content_ids[id.content_id] = id : false }.map{|id| id.id.to_i}

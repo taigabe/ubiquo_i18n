@@ -153,6 +153,20 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [model], no_evaled
   end
   
+  def test_search_by_locale_in_model_with_after_find
+    CallbackTestModel.create(:field => "hola", :locale => "ca", :content_id => 2)
+    CallbackTestModel.reset_counter
+    CallbackTestModel.locale('ca').first
+    assert_equal 1, CallbackTestModel.after_find_counter
+  end
+  
+  def test_search_by_locale_in_model_with_after_initialize
+    CallbackTestModel.create(:field => "hola", :locale => "ca", :content_id => 2)
+    CallbackTestModel.reset_counter    
+    CallbackTestModel.locale('ca').first
+    assert_equal 1, CallbackTestModel.after_initialize_counter
+  end  
+  
   def test_search_by_locale_with_special_any_locale
     model = create_model(:locale => 'any', :field1 => '1')
     assert_equal [model], TestModel.locale('es')

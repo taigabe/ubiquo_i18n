@@ -406,16 +406,33 @@ module UbiquoI18n
             # find the final IDs
             ids = nil
             
-            #removes paginator scope.
-            with_exclusive_scope(:find => {:limit => nil, :offset => nil}) do
-              ids = find(:all, {
-                  :select => "#{self.table_name}.id, #{self.table_name}.content_id ",
-                  :order => sanitize_sql_for_conditions(["#{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")}", *locales.map(&:to_s)]),
-                  :conditions => merge_conditions(locale_conditions, options[:conditions]),
-                  :include => merge_includes(scope(:find, :include), options[:include]),
-                  :joins => options[:joins]
-                })
+            # redefine after_find callback method avoiding its call with next find           
+            self.class_eval do
+              def after_find_with_neutralize; end
+              def after_initialize_with_neutralize; end              
+              alias_method_chain :after_find, :neutralize if self.instance_methods.include?("after_find")
+              alias_method_chain :after_initialize, :neutralize if self.instance_methods.include?("after_initialize")
             end
+          
+            begin
+              #removes paginator scope.
+              with_exclusive_scope(:find => {:limit => nil, :offset => nil}) do
+                ids = find(:all, {
+                    :select => "#{self.table_name}.id, #{self.table_name}.content_id ",
+                    :order => sanitize_sql_for_conditions(["#{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")}", *locales.map(&:to_s)]),
+                    :conditions => merge_conditions(locale_conditions, options[:conditions]),
+                    :include => merge_includes(scope(:find, :include), options[:include]),
+                    :joins => options[:joins]
+                  })
+              end
+            ensure
+              #restore after_find callback method
+              self.class_eval do
+                alias_method :after_find, :after_find_without_neutralize if self.instance_methods.include?("after_find")
+                alias_method :after_initialize, :after_initialize_without_neutralize if self.instance_methods.include?("after_initialize")              
+              end              
+            end
+
             #get only one ID per content_id
             content_ids = {}
             ids = ids.select{ |id| content_ids[id.content_id].nil? ? content_ids[id.content_id] = id : false }.map{|id| id.id.to_i}

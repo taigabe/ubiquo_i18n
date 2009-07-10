@@ -19,7 +19,7 @@ def create_translatable_related_model(options = {})
   TranslatableRelatedTestModel.create(options)
 end
 
-%w{TestModel RelatedTestModel UnsharedRelatedTestModel TranslatableRelatedTestModel ChainTestModelA ChainTestModelB ChainTestModelC OneOneTestModel}.each do |c|
+%w{TestModel RelatedTestModel UnsharedRelatedTestModel TranslatableRelatedTestModel ChainTestModelA ChainTestModelB ChainTestModelC OneOneTestModel CallbackTestModel}.each do |c|
   Object.const_set(c, Class.new(ActiveRecord::Base)) unless Object.const_defined? c
 end
 
@@ -27,7 +27,7 @@ Object.const_set("InheritanceTestModel", Class.new(ActiveRecord::Base)) unless O
 
 def create_test_model_backend
   # Creates a test table for AR things work properly
-  %w{test_models related_test_models unshared_related_test_models translatable_related_test_models chain_test_model_as chain_test_model_bs chain_test_model_cs one_one_test_models inheritance_test_models}.each do |table|
+  %w{test_models related_test_models unshared_related_test_models translatable_related_test_models chain_test_model_as chain_test_model_bs chain_test_model_cs one_one_test_models inheritance_test_models callback_test_models}.each do |table|
     if ActiveRecord::Base.connection.tables.include?(table)
       ActiveRecord::Base.connection.drop_table table
     end
@@ -73,6 +73,9 @@ def create_test_model_backend
     t.string :type
   end
   
+  ActiveRecord::Base.connection.create_table :callback_test_models, :translatable => true do |t|
+    t.string :field
+  end  
   
   # Models used to test extensions
   TestModel.class_eval do
@@ -140,8 +143,36 @@ def create_test_model_backend
   
   SecondSubclass.class_eval do
   end
-
+  
 end
+
+  class CallbackTestModel < ActiveRecord::Base
+    translatable
+    @@after_find_counter = 0
+    @@after_initialize_counter = 0      
+    
+    def self.reset_counter
+      @@after_find_counter = 0
+      @@after_initialize_counter = 0            
+    end
+    
+    def after_find
+      @@after_find_counter = @@after_find_counter + 1
+    end
+
+    def after_initialize
+      @@after_initialize_counter = @@after_initialize_counter + 1
+    end
+    
+    def self.after_find_counter
+      @@after_find_counter
+    end
+
+    def self.after_initialize_counter
+      @@after_initialize_counter
+    end
+    
+  end
 
 if ActiveRecord::Base.connection.class.to_s == "ActiveRecord::ConnectionAdapters::PostgreSQLAdapter"
   ActiveRecord::Base.connection.client_min_messages = "ERROR"

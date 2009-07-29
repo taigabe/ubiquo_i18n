@@ -17,7 +17,7 @@
                     )
                   )
                 ) %>
-          <%= link_to t("ubiquo.preview"), url_for(params.merge(:preview_id => translated.id)) %>
+          <%= link_to t("ubiquo.preview"), url_for(params.merge(:preview_id => translated.id)) unless options[:hide_preview_link] %>
         <% else %>
           <%= link_to(
                 t("ubiquo.translate"), 

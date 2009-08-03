@@ -84,17 +84,17 @@ def create_test_model_backend
     translatable :field1
     has_many :related_test_models
     has_many :unshared_related_test_models
-    has_many :shared_related_test_models, :class_name => "RelatedTestModel", :translatable => false
-    has_many :translatable_related_test_models, :translatable => false
+    has_many :shared_related_test_models, :class_name => "RelatedTestModel", :translation_shared => true
+    has_many :translatable_related_test_models, :translation_shared => true
     
-    has_many :inheritance_test_models, :translatable => true
+    has_many :inheritance_test_models, :translation_shared => false
   end
   
   RelatedTestModel.class_eval do
     belongs_to :test_model
     
-    has_many :inheritance_test_models, :translatable => true
-    has_many :test_models, :translatable => true
+    has_many :inheritance_test_models, :translation_shared => false
+    has_many :test_models, :translation_shared => false
   end
 
   UnsharedRelatedTestModel.class_eval do
@@ -110,23 +110,23 @@ def create_test_model_backend
   ChainTestModelA.class_eval do
     translatable :field
     belongs_to :chain_test_model_b
-    has_many :chain_test_model_cs, :translatable => false
+    has_many :chain_test_model_cs, :translation_shared => true
   end
   ChainTestModelB.class_eval do
     translatable :field
     belongs_to :chain_test_model_c
-    has_many :chain_test_model_as, :translatable => false
+    has_many :chain_test_model_as, :translation_shared => true
   end
   ChainTestModelC.class_eval do
     translatable :field, :shared_relations => :chain_test_model_bs
     belongs_to :chain_test_model_a
-    has_many :chain_test_model_bs, :translatable => false
+    has_many :chain_test_model_bs, :translation_shared => true
   end
   
   OneOneTestModel.class_eval do
     translatable :one_one_test_model_id
-    belongs_to :one_one, :translatable => false, :foreign_key => 'one_one_test_model_id', :class_name => 'OneOneTestModel'
-    has_one :one_one_test_model, :translatable => false
+    belongs_to :one_one, :translation_shared => true, :foreign_key => 'one_one_test_model_id', :class_name => 'OneOneTestModel'
+    has_one :one_one_test_model, :translation_shared => true
   end
   
   InheritanceTestModel.class_eval do

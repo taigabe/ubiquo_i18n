@@ -189,7 +189,7 @@ module UbiquoI18n
             self.translation_on_process true
             begin
               # act on reflections where translatable == false
-              self.class.reflections.select{|name, ref| ref.options[:translatable] == false}.each do |rel, values|
+              self.class.reflections.select{|name, ref| ref.options[:translation_shared] == true}.each do |rel, values|
                   model_rel = model.send(rel)
                   record = [model_rel].flatten.first
                   if record && record.class.is_translatable?
@@ -365,9 +365,9 @@ module UbiquoI18n
             end
           end
           
-          # Accept the :translatable option when defining associations
+          # Accept the :translation_shared option when defining associations
           ASSOCIATION_TYPES.each do |type|
-            klass.send("valid_keys_for_#{type}_association") << :translatable
+            klass.send("valid_keys_for_#{type}_association") << :translation_shared
           end
         end
         
@@ -495,7 +495,7 @@ module UbiquoI18n
         def untranslatable_attributes_names
           translatable_attributes = (self.class.translatable_attributes || []) + 
             (self.class.instance_variable_get('@global_translatable_attributes') || []) +
-            (self.class.reflections.select{|name, ref| ref.options[:translatable] != false}.map{|name, ref| ref.primary_key_name})
+            (self.class.reflections.select{|name, ref| ref.options[:translation_shared] != true}.map{|name, ref| ref.primary_key_name})
           attribute_names - translatable_attributes.map{|attr| attr.to_s}
         end
         

@@ -3,21 +3,21 @@ module UbiquoI18n
     module AssociationCollection
    
       def self.included(klass)
-        klass.alias_method_chain :add_record_to_target_with_callbacks, :translatable
+        klass.alias_method_chain :add_record_to_target_with_callbacks, :translation_shared
       end
       
       # This method intercepts an add_record_to_target_with_callbacks call, because
       # it's the "common point" when we'll always go when updating a relationship.
       # 
-      # If a relation is marked as shared (:translatable => false), then any change 
+      # If a relation is marked as shared (:translation_shared => true), then any change 
       # in a translation must update the other translations
-      def add_record_to_target_with_callbacks_with_translatable(record, &block)
-        if @reflection.options[:translatable] == false && !@owner.class.instance_variable_get('@is_translating_relations')
+      def add_record_to_target_with_callbacks_with_translation_shared(record, &block)
+        if @reflection.options[:translation_shared] == true && !@owner.class.instance_variable_get('@is_translating_relations')
           # This flag is used to prevent cyclical chain updates
           @owner.class.instance_variable_set('@is_translating_relations', true)
           
           begin
-            add_record_to_target_with_callbacks_without_translatable record, &block
+            add_record_to_target_with_callbacks_without_translation_shared record, &block
             relationship_contents = load_target
             # Update the translations with the new relationship contents
             @owner.translations.each do |translation|
@@ -53,7 +53,7 @@ module UbiquoI18n
           end
           @owner.class.instance_variable_set('@is_translating_relations', false)
         else
-          add_record_to_target_with_callbacks_without_translatable record, &block
+          add_record_to_target_with_callbacks_without_translation_shared record, &block
         end
       end
     end

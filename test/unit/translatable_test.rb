@@ -130,6 +130,15 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal 'f1', test_1.reload.field1
   end
 
+  def test_should_not_update_non_translatable_attributes_if_using_without_updating_translations
+    test_1 = create_model(:field1 => 'f1', :field2 => 'f2', :locale => 'ca')
+    test_2 = create_model(:field1 => 'newf1', :field2 => 'newf2', :locale => 'es', :content_id => test_1.content_id)
+    test_1.without_updating_translations do
+      test_1.update_attribute :field2, 'common'
+    end
+    assert_equal 'newf2', test_2.reload.field2
+  end
+  
   private
     
   def create_ar(options = {})

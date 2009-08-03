@@ -476,6 +476,7 @@ module UbiquoI18n
           update_without_translatable
           update_translations
         end
+        
         def update_translations
           if self.class.is_translatable? && !@stop_translatable_propagation
             # Update the translations
@@ -483,11 +484,9 @@ module UbiquoI18n
               translation.instance_variable_set('@stop_translatable_propagation', true)
               begin 
                 translation.update_attributes untranslatable_attributes
-              rescue
+              ensure
                 translation.instance_variable_set('@stop_translatable_propagation', false)
-                raise
               end
-              translation.instance_variable_set('@stop_translatable_propagation', false)
             end
           end
         end
@@ -505,6 +504,16 @@ module UbiquoI18n
             attrs[name] = clone_attribute_value(:read_attribute, name)
           end
           attrs
+        end
+        
+        # Used to execute a block disabling automatic translation update for this instance
+        def without_updating_translations
+          @stop_translatable_propagation = true
+          begin
+            yield
+          ensure
+            @stop_translatable_propagation = false
+          end
         end
         
       end

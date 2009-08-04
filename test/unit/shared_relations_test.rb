@@ -153,7 +153,6 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
   
   
   def test_has_many_to_translated_sti
-    TestModel.destroy_all
     InheritanceTestModel.destroy_all
     
     test_model = RelatedTestModel.create
@@ -173,6 +172,29 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal "Hola", test_model.reload.inheritance_test_models.locale("es").first.field
     assert_equal "Hi", test_model.reload.inheritance_test_models.locale("en", 'es').first.field
     assert_equal "Hola", test_model.reload.inheritance_test_models.locale("es", 'en').first.field
+  end
+  
+  def test_translatable_has_many_to_translated_sti_correctly_updates_the_associations
+    origin = TranslatableRelatedTestModel.create(:locale => 'en')
+    translated_origin = origin.translate('es')
+    translated_origin.save
+
+    sti_instance = FirstSubclass.create(:locale => "en", :translatable_related_test_model => origin)
+
+    assert_equal 1, origin.reload.inheritance_test_models.size
+    
+    translated_sti = sti_instance.translate('es')
+    translated_sti.save
+
+    assert_equal 1, origin.reload.inheritance_test_models.size
+    assert_equal 1, translated_origin.reload.inheritance_test_models.size
+    
+    translated_origin.inheritance_test_models = []
+    assert_equal [], origin.reload.inheritance_test_models
+    
+    translated_origin.inheritance_test_models = [translated_sti]
+    assert_equal [sti_instance], origin.reload.inheritance_test_models
+    
   end
 end
 

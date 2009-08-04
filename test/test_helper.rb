@@ -68,6 +68,7 @@ def create_test_model_backend
   end
   
   ActiveRecord::Base.connection.create_table :inheritance_test_models, :translatable => true do |t|
+    t.integer :translatable_related_test_model_id
     t.integer :related_test_model_id
     t.string :field
     t.string :type
@@ -93,7 +94,7 @@ def create_test_model_backend
   RelatedTestModel.class_eval do
     belongs_to :test_model
     
-    has_many :inheritance_test_models, :translation_shared => false
+    has_many :inheritance_test_models, :translation_shared => true
     has_many :test_models, :translation_shared => false
   end
 
@@ -104,6 +105,7 @@ def create_test_model_backend
   TranslatableRelatedTestModel.class_eval do
     translatable :field
     belongs_to :test_model
+    has_many :inheritance_test_models, :translation_shared => true
     has_many :related_test_models
   end
   
@@ -132,16 +134,11 @@ def create_test_model_backend
   InheritanceTestModel.class_eval do
     translatable :field
     belongs_to :related_test_model
+    belongs_to :translatable_related_test_model, :translation_shared => true
   end
   
   %w{FirstSubclass SecondSubclass}.each do |c|
     Object.const_set(c, Class.new(InheritanceTestModel)) unless Object.const_defined? c
-  end
-  
-  FirstSubclass.class_eval do
-  end
-  
-  SecondSubclass.class_eval do
   end
   
 end

@@ -209,6 +209,8 @@ module UbiquoI18n
                               all_relationship_contents << ct
                             end
                           end
+                        else
+                          all_relationship_contents << existing_translation
                         end
                       end
                     end
@@ -484,6 +486,7 @@ module UbiquoI18n
               translation.instance_variable_set('@stop_translatable_propagation', true)
               begin 
                 translation.update_attributes untranslatable_attributes
+                translation.copy_translatable_shared_relations_from self
               ensure
                 translation.instance_variable_set('@stop_translatable_propagation', false)
               end
@@ -494,7 +497,8 @@ module UbiquoI18n
         def untranslatable_attributes_names
           translatable_attributes = (self.class.translatable_attributes || []) + 
             (self.class.instance_variable_get('@global_translatable_attributes') || []) +
-            (self.class.reflections.select{|name, ref| ref.options[:translation_shared] != true}.map{|name, ref| ref.primary_key_name})
+#            (self.class.reflections.select{|name, ref| ref.options[:translation_shared] != true}.map{|name, ref| ref.primary_key_name})
+            (self.class.reflections.map{|name, ref| ref.primary_key_name})
           attribute_names - translatable_attributes.map{|attr| attr.to_s}
         end
         

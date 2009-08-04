@@ -43,7 +43,7 @@ module UbiquoI18n
                   # Find or create a translation and add it to the relationship_contents
                   unless existing_translation || old_rel.being_translated?
                     # create a new translation since there isn't one with this locale
-                    translated_rel = old_rel.translate(translation.locale)
+                    translated_rel = old_rel.translate(translation.locale, :copy_all => true)
                     translation_relationship_contents << translated_rel
                     translated_rel.save
                   else

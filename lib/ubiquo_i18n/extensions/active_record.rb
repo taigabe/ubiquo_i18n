@@ -127,7 +127,7 @@ module UbiquoI18n
               new_translation.locale = locale
               
               # copy of attributes
-              clonable_attributes = options[:copy_all] ? :attributes : :untranslatable_attributes
+              clonable_attributes = options[:copy_all] ? :attributes_except_unique_for_translation : :untranslatable_attributes
               self.send(clonable_attributes).each_pair do |attr, value|
                 new_translation.send("#{attr}=", value)
               end
@@ -197,7 +197,7 @@ module UbiquoI18n
                     [model_rel].flatten.each do |old_rel|
                       existing_translation = old_rel.translations.first(:conditions => {:locale => self.locale})
                       unless existing_translation || old_rel.being_translated?
-                        translated_rel = old_rel.translate(self.locale)
+                        translated_rel = old_rel.translate(self.locale, :copy_all => true)
                         all_relationship_contents << translated_rel
                         translated_rel.save
                       else 
@@ -497,7 +497,6 @@ module UbiquoI18n
         def untranslatable_attributes_names
           translatable_attributes = (self.class.translatable_attributes || []) + 
             (self.class.instance_variable_get('@global_translatable_attributes') || []) +
-#            (self.class.reflections.select{|name, ref| ref.options[:translation_shared] != true}.map{|name, ref| ref.primary_key_name})
             (self.class.reflections.map{|name, ref| ref.primary_key_name})
           attribute_names - translatable_attributes.map{|attr| attr.to_s}
         end
@@ -508,6 +507,11 @@ module UbiquoI18n
             attrs[name] = clone_attribute_value(:read_attribute, name)
           end
           attrs
+        end
+        
+        
+        def attributes_except_unique_for_translation
+          attributes.reject{|attr, value| [:id, :locale].include?(attr.to_sym)}
         end
         
         # Used to execute a block disabling automatic translation update for this instance

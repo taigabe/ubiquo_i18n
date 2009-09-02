@@ -502,7 +502,11 @@ module UbiquoI18n
         def untranslatable_attributes_names
           translatable_attributes = (self.class.translatable_attributes || []) + 
             (self.class.instance_variable_get('@global_translatable_attributes') || []) +
-            (self.class.reflections.map{|name, ref| ref.primary_key_name})
+            (self.class.reflections.select do |name, ref|
+                ref.macro != :belongs_to || 
+                !ref.options[:translation_shared] ||
+                ((model = [send(name)].first) && model.class.is_translatable?)
+            end.map{|name, ref| ref.primary_key_name})
           attribute_names - translatable_attributes.map{|attr| attr.to_s}
         end
         

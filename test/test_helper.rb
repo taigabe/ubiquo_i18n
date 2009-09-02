@@ -47,6 +47,7 @@ def create_test_model_backend
   end
   ActiveRecord::Base.connection.create_table :translatable_related_test_models, :translatable => true do |t|
     t.integer :test_model_id
+    t.integer :related_test_model_id
     t.string :field
     t.string :common
   end
@@ -105,6 +106,7 @@ def create_test_model_backend
   TranslatableRelatedTestModel.class_eval do
     translatable :field
     belongs_to :test_model
+    belongs_to :related_test_model, :translation_shared => true
     has_many :inheritance_test_models, :translation_shared => true
     has_many :related_test_models
   end

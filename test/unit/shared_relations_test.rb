@@ -4,19 +4,33 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
 
   # In these tests names, "simple" involves a non-translatable model, else "translatable" is used
 
-  def test_copy_shared_relations_simple_belongs_to_case
-    rel = create_related_model
-    rel.test_model = create_model(:locale => 'ca')
-    rel.save
+  def test_copy_shared_relations_simple_has_many_case
+    TestModel.reflections[:unshared_related_test_models].instance_variable_set('@options',{:translation_shared => true})
+    test_model = create_model(:locale => 'ca')
+    test_model.unshared_related_test_models << UnsharedRelatedTestModel.create
 
     # not supported, should fail
     assert_raise RuntimeError do
-      rel.test_model.translate('en')
+      test_model.translate('en')
     end
 
     # check no changes
     assert_equal 1, TestModel.count 
+    assert_equal 1, UnsharedRelatedTestModel.count
+    TestModel.reflections[:unshared_related_test_models].instance_variable_set('@options', {})
+  end
+
+  def test_copy_shared_relations_simple_belongs_to_case
+    rel = TranslatableRelatedTestModel.create :locale => 'ca'
+    rel.related_test_model = create_related_model
+    rel.save
+    
+    translated = rel.translate('en')
+    assert_equal rel.related_test_model, translated.related_test_model
+
+    # check no extra instances created
     assert_equal 1, RelatedTestModel.count
+    assert_equal 1, TranslatableRelatedTestModel.count
   end
 
   # The following 2 tests test duplicity which is currently a disabled behaviour

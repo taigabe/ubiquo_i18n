@@ -215,16 +215,12 @@ module UbiquoI18n
                       end
                     end
                   elsif record
-                    #unless "This model doesn't lead to a :through"
+                    if values.macro == :belongs_to
+                      # we simply copy the attribute value
+                      all_relationship_contents = [model_rel]
+                    else
                       raise "This behaviour is not supported by ubiquo_i18n. Either use a has_many :through to a translatable model or mark the #{record.class} model as translatable"
-                    #end
-                    # This is the code if we want to enable duplicates
-#                    all_relationship_contents = []
-#                    [model_rel].flatten.each do |old_rel|
-#                      translated_rel = old_rel.clone
-#                      all_relationship_contents << translated_rel
-#                      translated_rel.save
-#                    end
+                    end
                   else 
                     next
                   end

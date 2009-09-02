@@ -82,6 +82,8 @@ def create_test_model_backend
   # Models used to test extensions
   TestModel.class_eval do
     belongs_to :related_test_model
+    named_scope :field1_is_1, {:conditions => {:field1 => '1'}}
+    named_scope :field1_is_2, {:conditions => {:field1 => '2'}}
     
     translatable :field1
     has_many :related_test_models

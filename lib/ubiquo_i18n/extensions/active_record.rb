@@ -316,7 +316,7 @@ module UbiquoI18n
           if self.is_translatable?
             options = args.extract_options!
             apply_locale_filter!(options)
-            count_without_locale_filter(args.first, options)
+            count_without_locale_filter(args.first || :all, options)
           else
             count_without_locale_filter(*args)
           end

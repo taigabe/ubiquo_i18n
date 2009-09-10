@@ -1,4 +1,4 @@
-<h1><%= t('ubiquo.i18n.translations') %></h1>
+        <h1><%= t('ubiquo.i18n.translations') %></h1>
 <%= render :partial => "shared/ubiquo/feedback" %>
 
 <% form_for(ubiquo_locales_path, :html => {:method => :put}) do |form| %>
@@ -18,7 +18,8 @@
             }
           end,
           :pages => nil,
-          :hide_actions => true
+          :hide_actions => true,
+          :link_to_new => "",
         }) %>
   <p class="form_buttons">
     <%= form.submit t('ubiquo.save') %>

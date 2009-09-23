@@ -360,6 +360,7 @@ module UbiquoI18n
             class << self
               alias_method_chain :find, :locale_filter
               alias_method_chain :count, :locale_filter
+              VALID_FIND_OPTIONS << :locale_scoped << :locale_list
             end
           end
           
@@ -381,7 +382,7 @@ module UbiquoI18n
         # This method is the one that actually applies the locale filter
         # This means that if you use .locale(..), you'll end up here,
         # when the results are actually delivered (not in call time)
-        def apply_locale_filter!(options)        
+        def apply_locale_filter!(options)
           apply_locale_filter = @locale_scoped
           locales = @current_locale_list
           # set this find as dispatched
@@ -389,7 +390,7 @@ module UbiquoI18n
           @current_locale_list = []
           if apply_locale_filter
             # build locale restrictions
-            locales.uniq!
+            locales = merge_locale_list locales.reverse!#locales.flatten.uniq#merge_locale_list locales
             all_locales = locales.delete(:ALL)
             
             # add untranslatable instances if necessary
@@ -446,6 +447,22 @@ module UbiquoI18n
 
             options[:conditions] = merge_conditions(options[:conditions], {:id => ids})
           end
+        end
+        
+        def merge_locale_list locales
+          merge_locale_list_rec locales.first, locales[1,locales.size]
+        end
+        
+        def merge_locale_list_rec previous, rest
+          new = rest.first
+          return previous.clone unless new
+          merged = if previous.empty? || previous.include?(:ALL)
+            new
+          else
+            previous & new
+          end
+          merged = previous if merged.empty? && new.include?(:ALL)
+          merge_locale_list_rec merged, rest[1,rest.size]
         end
 
       end

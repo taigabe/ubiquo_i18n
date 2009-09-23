@@ -49,6 +49,10 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_model(:content_id => 3, :locale => 'en')
     
     assert_equal %w{ca}, TestModel.locale('en','es', :ALL).locale('es','ca').locale('ca').map(&:locale)
+    assert_equal %w{ca}, TestModel.locale('ca').locale('en','es', :ALL).map(&:locale)
+    assert_equal %w{ca}, TestModel.locale('ca').locale(:ALL).locale(:ALL).map(&:locale)
+    assert_equal %w{}, TestModel.locale('ca').locale(:ALL).locale('en').map(&:locale)
+    assert_equal %w{}, TestModel.locale('es').locale('ca').map(&:locale)
   end
 
   
@@ -170,6 +174,18 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     no_evaled = TestModel.all 
     assert_equal [], locale_evaled
     assert_equal [model], no_evaled
+  end
+  
+  def test_search_by_locale_with_multiple_scope_avaluation
+    # if something scoped is passed by reference to a function and is used there,
+    # can be effectively avaluated more than once
+    create_model(:locale => 'ca', :field1 => '1')
+    locale_evaled = TestModel.locale('es')
+    locale_evaled.size # first evaluation
+    def second_eval to_eval
+      assert_equal [], to_eval
+    end
+    second_eval locale_evaled
   end
   
   def test_search_by_locale_in_model_with_after_find

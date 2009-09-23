@@ -237,7 +237,7 @@ module UbiquoI18n
           end
           
           define_method 'destroy_content' do 
-            self.translations.destroy_all
+            self.translations.each(&:destroy)
             self.destroy
           end
           

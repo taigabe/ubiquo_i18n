@@ -375,6 +375,33 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal 0, TestModel.count    
   end
   
+  def test_destroy_contents_and_dependants
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    es.inheritance_test_models << InheritanceTestModel.create(:locale => 'es')
+    es.inheritance_test_models << InheritanceTestModel.create(:locale => 'es')
+    en = es.translate('en', :copy_all => true)
+    en.save
+    ca = es.translate('ca', :copy_all => true)
+    ca.save
+    assert_equal 3, TestModel.count
+    assert_equal 6, InheritanceTestModel.count
+    ca.destroy_content
+    assert_equal 0, TestModel.count
+    assert_equal 0, InheritanceTestModel.count    
+  end
+  
+  def test_destroy_contents_and_dependants_with_itself
+    es = create_model(:locale => 'es', :field1 => 'val', :field2 => 'val')
+    es.test_models << create_model(:locale => 'es')
+    en = es.translate('en', :copy_all => true)
+    en.save
+    ca = es.translate('ca', :copy_all => true)
+    ca.save
+    assert_equal 6, TestModel.count
+    ca.destroy_content
+    assert_equal 0, TestModel.count # will fail if using destroy_all (same model)
+  end
+  
   def test_compare_locales
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')

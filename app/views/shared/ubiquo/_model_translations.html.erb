@@ -1,6 +1,6 @@
 <% translations = model.translations %>
 <h3><%= t("ubiquo.i18n.translations") %></h3>
-  <% Locale.active.each do |l| %>
+  <% Locale.active.ordered_alphabetically.each do |l| %>
     <% unless model.locale?(l.iso_code, :skip_any => true) %>
       <% translated = translations.select{|t| t.locale == l.iso_code}.first %>
       

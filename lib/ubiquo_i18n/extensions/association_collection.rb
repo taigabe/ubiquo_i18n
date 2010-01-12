@@ -21,7 +21,7 @@ module UbiquoI18n
       # updated too
       def remove_records_with_translation_shared *records, &block
         remove_records_without_translation_shared(*records, &block)
-        update_translations_associations
+        update_translations_associations unless records.flatten.blank?
       end
       
       # If the association is shared between translations, updates these to the current association state 

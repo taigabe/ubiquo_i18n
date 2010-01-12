@@ -129,6 +129,28 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal 2, OneOneTestModel.count(:conditions => {:common => '2'})
   end
   
+  def test_should_copy_shared_relations_translatable_has_one_update_case
+    ca = OneOneTestModel.create(:locale => 'ca', :independent => 'ca')
+    ca.one_one = OneOneTestModel.create(:independent => 'subca', :locale => 'ca')
+    ca.save
+    en = ca.translate('en')
+    en.independent = 'en'
+    en.one_one.update_attribute :independent, 'suben'
+    en.save
+    es = en.reload.translate('es')
+    es.independent = 'es'
+    es.one_one.update_attribute :independent, 'subes'
+    es.save
+    es.save
+    assert_equal 6, OneOneTestModel.count # 2 original + 4 translated
+
+    assert_equal 'en', en.reload.independent
+    assert_equal 'suben', en.one_one.independent
+    assert_equal 'es', es.reload.independent
+    assert_equal 'subes', es.one_one.independent
+  end
+  
+
   def test_should_get_translated_has_many_elements_from_a_non_translated_model
     non_translated = RelatedTestModel.create
     
@@ -190,6 +212,16 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal [sti_instance], origin.reload.inheritance_test_models
     
   end
+
+  def test_should_not_redo_translations_in_has_many_translate_with_copy_all
+    ca = TestModel.create(:locale => 'ca')
+    ca.test_models << TestModel.create(:locale => 'ca')
+    original_id = ca.test_models.first.id
+    ca.translate('en', :copy_all => true)
+    ca.reload
+    assert_equal original_id, ca.test_models.first.id
+  end
+
 end
 
 create_test_model_backend

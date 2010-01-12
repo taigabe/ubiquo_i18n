@@ -135,7 +135,7 @@ def create_test_model_backend
   end
   
   OneOneTestModel.class_eval do
-    translatable :one_one_test_model_id
+    translatable :independent
     belongs_to :one_one, :translation_shared => true, :foreign_key => 'one_one_test_model_id', :class_name => 'OneOneTestModel'
     has_one :one_one_test_model, :translation_shared => true
   end

@@ -143,7 +143,7 @@ def create_test_model_backend
   InheritanceTestModel.class_eval do
     translatable :field
     belongs_to :test_model
-    belongs_to :related_test_model
+    belongs_to :related_test_model, :translation_shared => true
     belongs_to :translatable_related_test_model, :translation_shared => true
   end
   

@@ -158,15 +158,14 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     second_inherited = first_inherited.translate
     second_inherited.field = "Hola"
     second_inherited.locale = 'es'
-    second_inherited.related_test_model = test_model
 
     second_inherited.save
 
     assert_equal 2, test_model.reload.inheritance_test_models.size
-    assert_equal "Hi", test_model.reload.inheritance_test_models.locale("en").first.field
-    assert_equal "Hola", test_model.reload.inheritance_test_models.locale("es").first.field
-    assert_equal "Hi", test_model.reload.inheritance_test_models.locale("en", 'es').first.field
-    assert_equal "Hola", test_model.reload.inheritance_test_models.locale("es", 'en').first.field
+    assert_equal "Hi", test_model.inheritance_test_models.locale("en").first.field
+    assert_equal "Hola", test_model.inheritance_test_models.locale("es").first.field
+    assert_equal "Hi", test_model.inheritance_test_models.locale("en", 'es').first.field
+    assert_equal "Hola", test_model.inheritance_test_models.locale("es", 'en').first.field
   end
   
   def test_translatable_has_many_to_translated_sti_correctly_updates_the_associations

@@ -383,11 +383,11 @@ module UbiquoI18n
         # This means that if you use .locale(..), you'll end up here,
         # when the results are actually delivered (not in call time)
         def apply_locale_filter!(options)
-          apply_locale_filter = @locale_scoped
-          locales = @current_locale_list
+          apply_locale_filter = really_translatable_class.instance_variable_get(:@locale_scoped)
+          locales = really_translatable_class.instance_variable_get(:@current_locale_list)
           # set this find as dispatched
-          @locale_scoped = false
-          @current_locale_list = []
+          really_translatable_class.instance_variable_set(:@locale_scoped, false)
+          really_translatable_class.instance_variable_set(:@current_locale_list, [])
           if apply_locale_filter
             # build locale restrictions
             locales = merge_locale_list locales.reverse!#locales.flatten.uniq#merge_locale_list locales

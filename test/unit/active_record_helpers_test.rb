@@ -216,6 +216,24 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal 1, TestModel.locale(:es).count
   end
 
+  def test_search_by_locale_in_subclass
+    ca = FirstSubclass.create(:locale => 'ca')
+    es = ca.translate('es')
+    es.save
+    assert_equal [ca], FirstSubclass.locale('ca')
+    assert_equal 1, FirstSubclass.locale('ca').count
+    assert_equal [es], FirstSubclass.locale('es')
+    assert_equal 1, FirstSubclass(:ALL).count
+  end
+
+  def test_search_by_locale_in_subclass_doesnt_affect_superclass
+    ca = FirstSubclass.create(:locale => 'ca')
+    es = ca.translate('es')
+    es.save
+    FirstSubclass.locale('ca').size #.size to evaluate
+    assert_equal_set [ca, es], InheritanceTestModel.all
+  end
+
   def test_search_translations
     es_m1 = create_model(:content_id => 1, :locale => 'es')
     ca_m1 = create_model(:content_id => 1, :locale => 'ca')

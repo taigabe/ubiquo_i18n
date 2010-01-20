@@ -75,6 +75,7 @@ def create_test_model_backend
     t.integer :related_test_model_id
     t.integer :test_model_id
     t.string :field
+    t.string :mixed
     t.string :type
   end
   
@@ -150,6 +151,12 @@ def create_test_model_backend
   %w{FirstSubclass SecondSubclass}.each do |c|
     Object.const_set(c, Class.new(InheritanceTestModel)) unless Object.const_defined? c
   end
+
+  SecondSubclass.class_eval do
+    translatable :mixed
+  end
+
+  Object.const_set('GrandsonClass', Class.new(FirstSubclass)) unless Object.const_defined? 'GrandsonClass'
   
 end
 

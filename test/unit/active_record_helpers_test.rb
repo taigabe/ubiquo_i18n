@@ -223,7 +223,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [ca], FirstSubclass.locale('ca')
     assert_equal 1, FirstSubclass.locale('ca').count
     assert_equal [es], FirstSubclass.locale('es')
-    assert_equal 1, FirstSubclass(:ALL).count
+    assert_equal 1, FirstSubclass.locale(:ALL).count
   end
 
   def test_search_by_locale_in_subclass_doesnt_affect_superclass
@@ -232,6 +232,19 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     es.save
     FirstSubclass.locale('ca').size #.size to evaluate
     assert_equal_set [ca, es], InheritanceTestModel.all
+  end
+
+  def test_search_by_locale_in_different_deep_sti_class_levels
+    ca = GrandsonClass.create(:locale => 'ca')
+    es = ca.translate('es')
+    es.save
+    hierarchy = [GrandsonClass, FirstSubclass, InheritanceTestModel]
+    (hierarchy + hierarchy.reverse).each do |klass|
+      assert_equal [ca], klass.locale('ca')
+      assert_equal 1, klass.locale('ca').count
+      assert_equal [es], klass.locale('es')
+      assert_equal 1, klass.locale(:ALL).count
+    end
   end
 
   def test_search_translations

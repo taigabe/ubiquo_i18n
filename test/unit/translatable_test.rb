@@ -138,6 +138,17 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     end
     assert_equal 'newf2', test_2.reload.field2
   end
+
+  def test_should_update_translatable_fields_on_subclasses_with_them_enabled
+    in_ca = InheritanceTestModel.create(:field => 'ca', :mixed => 'ca', :locale => 'ca')
+    in_es = InheritanceTestModel.create(:field => 'es', :mixed => 'es', :locale => 'es', :content_id => in_ca.content_id)
+    assert_equal 'ca', in_ca.reload.field
+    assert_equal 'es', in_ca.mixed
+    sub_ca = SecondSubclass.create(:field => 'ca', :mixed => 'ca', :locale => 'ca')
+    sub_es = SecondSubclass.create(:field => 'es', :mixed => 'es', :locale => 'es', :content_id => sub_ca.content_id)
+    assert_equal 'ca', sub_ca.reload.field
+    assert_equal 'ca', sub_ca.mixed
+  end
   
   private
     

@@ -5,14 +5,24 @@ module UbiquoI18n
     module Helpers
       
       # Returns a selector of the currently active locales, ordered alphabetically, 
-      # with the current locale selected
-      def locale_selector
-        good_params = params.dup
-        good_params.delete(:page) # removed page preventing wrong page number in new locale
+      # with the current locale selected.
+      #
+      # Options can contain the following options:
+      #   :keep_page => unless true, the page parameter is removed in the
+      #                 destination url, to prevent wrong page number in index pages
+
+      def locale_selector(options = {})
+        redirect_params = params.dup
+        redirect_params.delete(:page) unless options[:keep_page]
         if Locale.active.size > 1
-          form_tag(url_for(good_params), :method => :get) +
+          form_tag(url_for(redirect_params), :method => :get) +
             html_unescape(select_tag( "locale", 
-              options_from_collection_for_select(Locale.active.ordered_alphabetically.all, :iso_code, :native_name, current_locale),
+              options_from_collection_for_select(
+                Locale.active.ordered_alphabetically,
+                :iso_code,
+                :native_name,
+                current_locale
+              ),
               :onchange => "up('form').submit();"
               )) +
             "</form>"

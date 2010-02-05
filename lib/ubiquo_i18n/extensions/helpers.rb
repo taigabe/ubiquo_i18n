@@ -19,6 +19,7 @@ module UbiquoI18n
             html_unescape(select_tag("locale_selector",
                                      options_for_locale_selector)) +
             "</form>"
+        end
       end
       
       # For a given model, show their translations with a link to them

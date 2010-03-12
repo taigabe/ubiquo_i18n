@@ -44,6 +44,21 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal rel.related_test_model, translated.reload.related_test_model
   end
   
+  def test_copy_shared_relations_simple_belongs_update_case
+    rel = TranslatableRelatedTestModel.create :locale => 'ca'
+    rel.related_test_model = create_related_model
+    rel.save
+
+    translated = rel.translate('en')
+    translated.save
+
+    new_end = create_related_model
+    translated.related_test_model = new_end
+    translated.save
+    assert_equal new_end.id, translated.reload.related_test_model.id
+    assert_equal translated.related_test_model, rel.reload.related_test_model
+  end
+
   def test_should_not_copy_relations_as_default_simple_has_many_creation_case
     m1 = create_model(:locale => 'ca')
     m1.unshared_related_test_models << UnsharedRelatedTestModel.create(:field1 => '1')
@@ -150,6 +165,68 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal 'subes', es.one_one.independent
   end
   
+  def test_copy_shared_relations_translatable_belongs_to_creation_case
+    original = create_model(:locale => 'ca')
+    original_relation = create_model(:locale => 'ca')
+    original.test_model = original_relation
+    original.save
+
+    translated = original.translate('en')
+    translated.save
+
+    assert translated.test_model, 'translated instance relation is empty'
+    assert_equal translated.locale, translated.test_model.locale
+    assert_equal original_relation.in_locale('en'), translated.test_model
+    assert_equal 4, TestModel.count
+    assert_equal(
+      original.id + 3,
+      [translated.test_model.id, translated.id].max,
+      'instances were created and deleted'
+    )
+  end
+
+  def test_copy_shared_relations_translatable_belongs_to_update_case
+    original = create_model(:locale => 'ca')
+    original_relation = create_model(:locale => 'ca')
+    original.test_model = original_relation
+    original.save
+
+    translated = original.translate('en')
+    translated.save
+
+    updated_relation = create_model(:locale => 'en')
+    translated.test_model = updated_relation
+    translated.save
+    
+    assert_not_equal original_relation, original.reload.test_model
+    assert_equal updated_relation.in_locale('ca'), original.test_model
+    assert_equal 6, TestModel.count
+    assert_equal(
+      original.id + 5,
+      [original.test_model.id, original.id].max,
+      'instances were created and deleted'
+    )
+  end
+
+  def test_copy_shared_relations_translatable_belongs_to_update_case_translation_existing
+    original = create_model(:locale => 'ca')
+    original_relation = create_model(:locale => 'ca')
+    original.test_model = original_relation
+    original.save
+
+    translated = original.translate('en')
+    translated.save
+
+    updated_relation = create_model(:locale => 'en')
+    ca_updated_relation = updated_relation.translate('ca')
+    ca_updated_relation.save
+    
+    translated.test_model = updated_relation
+    translated.save
+
+    assert_not_equal original_relation, original.reload.test_model
+    assert_equal ca_updated_relation, original.reload.test_model
+  end
 
   def test_should_get_translated_has_many_elements_from_a_non_translated_model
     non_translated = RelatedTestModel.create

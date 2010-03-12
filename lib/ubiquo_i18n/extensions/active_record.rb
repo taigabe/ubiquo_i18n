@@ -226,14 +226,15 @@ module UbiquoI18n
                   end
                   all_relationship_contents = all_relationship_contents.first unless model_rel.is_a?(Array)
                   self.send(rel.to_s + '=', all_relationship_contents)
+                  if values.macro == :belongs_to && !new_record?
+                    # belongs_to is not autosaved by rails when the association is not new
+                    save
+                  end
               end
-            rescue
+            ensure
               self.class.is_translating_relations = false
               self.translation_on_process(false)
-              raise
             end
-            self.class.is_translating_relations = false
-            self.translation_on_process(false)
           end
           
           define_method 'destroy_content' do 

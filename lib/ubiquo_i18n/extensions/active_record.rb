@@ -153,13 +153,10 @@ module UbiquoI18n
             begin
               # TODO replace with a block when migrating to Ruby 1.9
               result = closure.call
-            rescue
-              raise
+            ensure
               current_translations = ::ActiveRecord::Base.instance_variable_get('@current_translations')
               current_translations.delete(self)
             end
-            current_translations = ::ActiveRecord::Base.instance_variable_get('@current_translations')
-            current_translations.delete(self)
             result
           end
           
@@ -391,15 +388,22 @@ module UbiquoI18n
           really_translatable_class.instance_variable_set(:@current_locale_list, [])
           if apply_locale_filter
             # build locale restrictions
-            locales = merge_locale_list locales.reverse!#locales.flatten.uniq#merge_locale_list locales
+            locales = merge_locale_list locales.reverse!
             all_locales = locales.delete(:ALL)
             
             # add untranslatable instances if necessary
             locales << :any unless all_locales || locales.size == 0
-            
-            locale_conditions = all_locales ? "" : ["#{self.table_name}.locale in (?)", locales.map(&:to_s)]
 
-
+            if all_locales
+              locale_conditions = ""
+            else
+              locale_conditions = ["#{self.table_name}.locale in (?)", locales.map(&:to_s)]
+              # act like a normal condition when we are just filtering a locale
+              if locales.size == 2 && locales.include?(:any)
+                options[:conditions] = merge_conditions(options[:conditions], locale_conditions)
+                return
+              end
+            end
             # locale preference order 
             locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
             
@@ -439,7 +443,7 @@ module UbiquoI18n
               self.class_eval do
                 alias_method :after_find, :after_find_without_neutralize if self.instance_methods.include?("after_find")
                 alias_method :after_initialize, :after_initialize_without_neutralize if self.instance_methods.include?("after_initialize")              
-              end              
+              end
             end
 
             #get only one ID per content_id

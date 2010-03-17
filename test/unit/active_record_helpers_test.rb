@@ -247,6 +247,14 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     end
   end
 
+  def test_search_by_locale_has_not_paginator_restrictions
+    m1 = create_model(:locale => 'ca')
+    m2 = create_model(:locale => 'ca')
+    TestModel.send(:with_scope, :find => {:limit => 1}) do
+      assert_equal_set [m2], TestModel.locale('ca').all(:order => 'id DESC')
+    end
+  end
+
   def test_search_translations
     es_m1 = create_model(:content_id => 1, :locale => 'es')
     ca_m1 = create_model(:content_id => 1, :locale => 'ca')

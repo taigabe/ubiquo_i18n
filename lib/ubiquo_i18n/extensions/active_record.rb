@@ -350,7 +350,9 @@ module UbiquoI18n
         def self.extended(klass)
           # Ensure that the needed variables are inherited
           @@translatable_inheritable_instance_variables.each do |inheritable|
-            klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+            unless eval("@#{inheritable}").nil?
+              klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+            end
           end
           
           # Aliases the find and count methods to apply the locale filter
@@ -371,7 +373,9 @@ module UbiquoI18n
         def inherited(klass)
           super
           @@translatable_inheritable_instance_variables.each do |inheritable|
-            klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+            unless eval("@#{inheritable}").nil?            
+              klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
+            end
           end
         end
 

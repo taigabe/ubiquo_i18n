@@ -330,10 +330,21 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_model(:content_id => 1, :locale => 'ca', :field2 => 'newval')
     assert_equal 'val', es_m1.reload.field2
   end
-  
-  def test_translate_should_create_translation_with_correct_values
+
+  def test_translate_should_create_translation_with_correct_values_when_copy_all_true_by_default
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     ca = TestModel.translate(1, 'ca')
+    assert_nil ca.id
+    assert_equal es.content_id, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert_equal 'val', ca.field1
+    assert_equal 'val', ca.field2
+    assert ca.save
+  end
+
+  def test_translate_should_create_translation_with_correct_values_when_copy_all_false
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    ca = TestModel.translate(1, 'ca', :copy_all => false)
     assert_nil ca.id
     assert_equal es.content_id, ca.content_id
     assert_equal 'ca', ca.locale

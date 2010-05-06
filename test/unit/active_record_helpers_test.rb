@@ -477,7 +477,17 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert !any.locale?('jp', 'fr', 'ca', 'es', :skip_any => true)
     assert any.locale?('any', :skip_any => true)
   end
-  
+
+  def test_named_scopes_work_on_subclasses_if_previously_loaded
+    assert_nothing_raised do
+      SecondSubclass.scopes.clear
+      InheritanceTestModel.class_eval do
+        translatable
+      end
+      SecondSubclass.locale('ca')
+    end
+  end
+
 end
 
 create_test_model_backend

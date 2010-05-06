@@ -65,7 +65,7 @@ module UbiquoI18n
             })
             asked_locales.include?(self.locale) || (!options[:skip_any] && self.locale == 'any')
           end
-         
+
           # usage:
           # find all content in any locale: Model.locale(:ALL)
           # find spanish content: Model.locale('es')
@@ -99,7 +99,12 @@ module UbiquoI18n
             end
             {:conditions => [translation_condition, content.content_id, content.locale]}
           }
-          
+
+          # Apply these named scopes to any possible already loaded subclass
+          subclasses.each do |klass|
+            klass.scopes.merge! scopes.slice(:locale, :translations, :content)
+          end
+
           # Instance method to find translations
           define_method('translations') do
             self.class.translations(self)

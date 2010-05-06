@@ -35,7 +35,7 @@ class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
       connection.create_table(:test, :force => true){}
       connection.change_table(:test, :translatable => true){}
     }
-    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    column_names = connection.columns('test').map(&:name).map(&:to_s)
     assert column_names.include?('content_id')
     assert column_names.include?('locale')
     assert_equal 1, connection.list_sequences("test_$").size
@@ -49,7 +49,7 @@ class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
       connection.change_table(:test, :translatable => true){}
       connection.change_table(:test, :translatable => false){}
     }
-    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    column_names = connection.columns('test').map(&:name).map(&:to_s)
     assert !column_names.include?('content_id')
     assert !column_names.include?('locale')
     assert_equal 0, connection.list_sequences("test_$").size
@@ -62,7 +62,7 @@ class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
       connection.create_table(:test, :force => true){}
       connection.change_table(:test){}
     }
-    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    column_names = connection.columns('test').map(&:name).map(&:to_s)
     assert !column_names.include?('content_id')
     assert !column_names.include?('locale')
     assert_equal 0, connection.list_sequences("test_$").size

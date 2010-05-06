@@ -40,15 +40,25 @@ module UbiquoI18n
           if translatable
             table.string :locale, :nil => false
             table.sequence table_name, :content_id
+          elsif translatable == false && method == :change_table
+            table.remove :locale
+            table.remove_sequence :test, :content_id
           end
           yield table
         end
 
-        # create indexes for these new fields
+        # create or remove indexes for these new fields
+        indexes = [:locale, :content_id]
         if translatable
-          [:locale, :content_id].each do |index|
+          indexes.each do |index|
             unless adapter.indexes(table_name).map(&:columns).flatten.include? index.to_s
               adapter.add_index table_name, index
+            end
+          end
+        elsif translatable == false
+          indexes.each do |index|
+            if adapter.indexes(table_name).map(&:columns).flatten.include? index.to_s
+              adapter.remove_index table_name, index
             end
           end
         end

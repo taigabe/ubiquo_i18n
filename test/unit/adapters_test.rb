@@ -42,7 +42,21 @@ class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
     connection.drop_table(:test)
   end
   
-  def test_change_table_without_translatable
+  def test_change_table_with_translatable_false_should_delete_fields
+    connection = ActiveRecord::Base.connection
+    ActiveRecord::Base.silence{
+      connection.create_table(:test, :force => true){}
+      connection.change_table(:test, :translatable => true){}
+      connection.change_table(:test, :translatable => false){}
+    }
+    column_names = connection.columns(:test).map(&:name).map(&:to_s)
+    assert !column_names.include?('content_id')
+    assert !column_names.include?('locale')
+    assert_equal 0, connection.list_sequences("test_$").size
+    connection.drop_table(:test)
+  end
+
+  def test_change_table_without_translatable_should_do_nothing
     connection = ActiveRecord::Base.connection
     ActiveRecord::Base.silence{
       connection.create_table(:test, :force => true){}

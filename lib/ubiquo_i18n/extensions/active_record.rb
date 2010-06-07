@@ -199,11 +199,7 @@ module UbiquoI18n
                     all_relationship_contents = []
                     [model_rel].flatten.each do |old_rel|
                       existing_translation = old_rel.translations.first(:conditions => {:locale => self.locale})
-                      unless existing_translation || old_rel.being_translated?
-                        translated_rel = old_rel.translate(self.locale, :copy_all => true)
-                        all_relationship_contents << translated_rel
-                        translated_rel.save
-                      else 
+                      if existing_translation || old_rel.being_translated?
                         if old_rel.being_translated?
                         # maybe it doesn't exist in db but it does in memory 
                         # it means that is currently being translated and there is something self-referential
@@ -215,6 +211,8 @@ module UbiquoI18n
                         else
                           all_relationship_contents << existing_translation
                         end
+                      elsif !old_rel.being_translated?
+                        all_relationship_contents << old_rel
                       end
                     end
                   elsif record
@@ -246,7 +244,57 @@ module UbiquoI18n
           end
           
         end
-        
+
+        def share_translations_for(*associations)
+          return unless self.is_translatable?
+
+          associations.each do |association_id|
+            define_method "#{association_id}_with_shared_translations" do
+              association = self.send("#{association_id}_without_shared_translations")
+              if association.is_a? Array
+                translations.map do |translation|
+                  elements = translation.send("#{association_id}_without_shared_translations")
+                  elements.reject! do |element|
+                    association.proxy_target.map(&:content_id).include? element.content_id
+                  end
+                  association.proxy_target.concat(elements)
+                end.flatten
+
+                # now localize the contents
+                translations_to_do = {}
+                association.proxy_target.each do |element|
+                  if (!element.locale?(locale) && (translation = element.in_locale(locale))) ||
+                      (translation = element.get_translation_from_memory)
+                    translations_to_do[element] = translation
+                  end
+                end
+                translations_to_do.each_pair do |foreign, translation|
+                  association.proxy_target.delete foreign
+                  association.proxy_target << translation
+                end
+
+                association.loaded
+              else
+                # one-sized association, not a collection
+                if association && association.respond_to?(:locale) && association.locale != locale
+                  association = association.get_translation_from_memory|| association.in_locale(locale) || association
+                end
+              end
+              association
+            end
+
+            alias_method_chain association_id, :shared_translations
+          end
+
+        end
+
+        # Given a reflection, will process the :translation_shared option
+        def process_translation_shared reflection
+          if reflection.options[:translation_shared]
+            share_translations_for reflection.name
+          end
+        end
+
         # Returns the value for the var_name instance variable, or if this is nil,
         # follow the superclass chain to ask the value        
         def instance_variable_inherited_get(var_name, method_name = nil)
@@ -564,7 +612,16 @@ module UbiquoI18n
             @stop_translatable_propagation = false
           end
         end
-        
+
+        # Returns a currently on process translation if found
+        def get_translation_from_memory
+          ::ActiveRecord::Base.instance_variable_get('@current_translations_on_process').each do |on_process|
+            if on_process.class == self.class && on_process.locale == self.locale && on_process.content_id == self.content_id
+              return on_process
+            end
+          end
+          nil
+        end
       end
 
     end

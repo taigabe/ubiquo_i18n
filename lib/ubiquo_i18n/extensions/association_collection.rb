@@ -41,21 +41,10 @@ module UbiquoI18n
                   existing_translation = old_rel.translations.first(:conditions => {:locale => translation.locale})
                   
                   # Find or create a translation and add it to the relationship_contents
-                  unless existing_translation || old_rel.being_translated?
-                    # create a new translation since there isn't one with this locale
-                    translated_rel = old_rel.translate(translation.locale, :copy_all => true)
-                    translation_relationship_contents << translated_rel
-                    translated_rel.save
-                  else
+                  if existing_translation || old_rel.being_translated?
                     translation_relationship_contents << existing_translation
                   end
                   
-                else
-                  # Not translatable - we just clone the object because every
-                  # translation should have an independent instance
-                  translated_rel = old_rel.clone
-                  translation_relationship_contents << translated_rel
-                  translated_rel.save                    
                 end
               end
               translation.send(@reflection.name.to_s + '=', translation_relationship_contents)

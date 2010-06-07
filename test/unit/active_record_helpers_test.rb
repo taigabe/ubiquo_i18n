@@ -434,7 +434,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     ca = es.translate('ca', :copy_all => true)
     ca.save
     assert_equal 3, TestModel.count
-    assert_equal 6, InheritanceTestModel.count
+    assert_equal 2, InheritanceTestModel.count
     ca.destroy_content
     assert_equal 0, TestModel.count
     assert_equal 0, InheritanceTestModel.count    
@@ -447,7 +447,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     en.save
     ca = es.translate('ca', :copy_all => true)
     ca.save
-    assert_equal 6, TestModel.count
+    assert_equal 4, TestModel.count
     ca.reload.destroy_content # reload to avoid #219
     assert_equal 0, TestModel.count # will fail if using destroy_all (same model)
   end

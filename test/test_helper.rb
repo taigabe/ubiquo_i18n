@@ -122,17 +122,17 @@ def create_test_model_backend
   
   ChainTestModelA.class_eval do
     translatable :field
-    belongs_to :chain_test_model_b
+    belongs_to :chain_test_model_b, :translation_shared => true
     has_many :chain_test_model_cs, :translation_shared => true
   end
   ChainTestModelB.class_eval do
     translatable :field
-    belongs_to :chain_test_model_c
+    belongs_to :chain_test_model_c, :translation_shared => true
     has_many :chain_test_model_as, :translation_shared => true
   end
   ChainTestModelC.class_eval do
     translatable :field, :shared_relations => :chain_test_model_bs
-    belongs_to :chain_test_model_a
+    belongs_to :chain_test_model_a, :translation_shared => true
     has_many :chain_test_model_bs, :translation_shared => true
   end
   

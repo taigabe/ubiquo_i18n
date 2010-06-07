@@ -24,7 +24,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     rel = TranslatableRelatedTestModel.create :locale => 'ca'
     rel.related_test_model = create_related_model
     rel.save
-    
+
     translated = rel.translate('en')
     assert_equal rel.related_test_model, translated.related_test_model
 
@@ -87,12 +87,12 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     m2 = m1.translate('en')
 
     assert_equal 2, m2.translatable_related_test_models.size # as m1
-    assert_equal %w{en en}, m2.translatable_related_test_models.map(&:locale)
+    assert_equal %w{ca ca}, m2.translatable_related_test_models.map(&:locale)
     assert_equal m1.translatable_related_test_models.first.content_id, m2.translatable_related_test_models.first.content_id
-    assert_not_equal m1.translatable_related_test_models, m2.translatable_related_test_models 
-    assert_equal 4, TranslatableRelatedTestModel.count # 2 original + 2 duplicated
-    assert_equal 2, TranslatableRelatedTestModel.count(:conditions => {:common => '1'})
-    assert_equal 2, TranslatableRelatedTestModel.count(:conditions => {:common => '2'})
+    assert_equal m1.translatable_related_test_models, m2.translatable_related_test_models 
+    assert_equal 2, TranslatableRelatedTestModel.count
+    assert_equal 1, TranslatableRelatedTestModel.count(:conditions => {:common => '1'})
+    assert_equal 1, TranslatableRelatedTestModel.count(:conditions => {:common => '2'})
   end
 
   def test_should_copy_shared_relations_translatable_has_many_update_case
@@ -104,10 +104,10 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     m1.translatable_related_test_models = [create_translatable_related_model(:common => '3', :locale => 'ca')]
 
     assert_equal 1, m2.reload.translatable_related_test_models.size # as m1
-    assert_equal %w{en}, m2.translatable_related_test_models.map(&:locale)
+    assert_equal %w{ca}, m2.translatable_related_test_models.map(&:locale)
     assert_equal_set m1.translatable_related_test_models.map(&:content_id), m2.translatable_related_test_models.map(&:content_id)
-    assert_equal 6, TranslatableRelatedTestModel.count # 2 original + 2 duplicated
-    assert_equal 2, TranslatableRelatedTestModel.count(:conditions => {:common => '3'})
+    assert_equal 3, TranslatableRelatedTestModel.count # 3 original
+    assert_equal 1, TranslatableRelatedTestModel.count(:conditions => {:common => '3'})
   end
   
   def test_should_copy_shared_relations_translatable_chained_creation_case
@@ -118,14 +118,19 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     a.save; b.save; c.save;
     assert_equal a, a.chain_test_model_b.chain_test_model_c.chain_test_model_a
 
-    # The following should trigger chained translation a => b => c
     newa = a.translate('en')
     assert_equal b.content_id, newa.chain_test_model_b.content_id
     assert_equal c.content_id, newa.chain_test_model_b.chain_test_model_c.content_id
-    assert_equal 'en', newa.chain_test_model_b.locale
-    assert_equal 'en', newa.chain_test_model_b.chain_test_model_c.locale
+    assert_equal 'ca', newa.chain_test_model_b.locale
+    assert_equal 'ca', newa.chain_test_model_b.chain_test_model_c.locale
     assert_equal a, a.chain_test_model_b.chain_test_model_c.chain_test_model_a
-    assert_equal newa, newa.chain_test_model_b.chain_test_model_c.chain_test_model_a
+
+    # newa is not saved, should not be found
+    assert_equal a, newa.chain_test_model_b.chain_test_model_c.chain_test_model_a
+
+    newa.save
+    # anyway, chain_test_model_c is in another language
+    assert_equal a, newa.chain_test_model_b.chain_test_model_c.chain_test_model_a
   end
   
   def test_should_copy_shared_relations_translatable_has_one_creation_case
@@ -136,12 +141,11 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
 
     assert_not_nil m2.one_one
     assert_not_nil m1.reload.one_one
-    assert_not_equal m1.one_one, m2.one_one
-    assert_equal m1.one_one.content_id, m2.one_one.content_id
-    assert_equal 'en', m2.one_one.locale
-    assert_equal 4, OneOneTestModel.count # 2 original + 2 translated
-    assert_equal 2, OneOneTestModel.count(:conditions => {:common => '1'})
-    assert_equal 2, OneOneTestModel.count(:conditions => {:common => '2'})
+    assert_equal m1.one_one, m2.one_one
+    assert_equal 'ca', m2.one_one.locale
+    assert_equal 2, OneOneTestModel.count
+    assert_equal 1, OneOneTestModel.count(:conditions => {:common => '1'})
+    assert_equal 1, OneOneTestModel.count(:conditions => {:common => '2'})
   end
   
   def test_should_copy_shared_relations_translatable_has_one_update_case
@@ -157,10 +161,10 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     es.one_one.update_attribute :independent, 'subes'
     es.save
     es.save
-    assert_equal 6, OneOneTestModel.count # 2 original + 4 translated
+    assert_equal 4, OneOneTestModel.count
 
     assert_equal 'en', en.reload.independent
-    assert_equal 'suben', en.one_one.independent
+    assert_equal 'subes', en.one_one.independent
     assert_equal 'es', es.reload.independent
     assert_equal 'subes', es.one_one.independent
   end
@@ -175,11 +179,11 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     translated.save
 
     assert translated.test_model, 'translated instance relation is empty'
-    assert_equal translated.locale, translated.test_model.locale
-    assert_equal original_relation.in_locale('en'), translated.test_model
-    assert_equal 4, TestModel.count
+    assert_equal original.locale, translated.test_model.locale
+    assert_equal original_relation, translated.test_model
+    assert_equal 3, TestModel.count
     assert_equal(
-      original.id + 3,
+      original.id + 2,
       [translated.test_model.id, translated.id].max,
       'instances were created and deleted'
     )
@@ -199,10 +203,10 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     translated.save
     
     assert_not_equal original_relation, original.reload.test_model
-    assert_equal updated_relation.in_locale('ca'), original.test_model
-    assert_equal 6, TestModel.count
+    assert_equal updated_relation, original.test_model
+    assert_equal 4, TestModel.count
     assert_equal(
-      original.id + 5,
+      original.id + 3,
       [original.test_model.id, original.id].max,
       'instances were created and deleted'
     )

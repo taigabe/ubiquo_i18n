@@ -56,14 +56,17 @@ module UbiquoI18n
             end
           end
           
-          # checks if instance has a locale given a locales list
-          # if :skip_any option passed, it ignore items with :any locale. If not, :any items returns true.
+          # Checks if the instance has a locale in the given a locales list
+          # The last parameter can be an options hash
+          #   :skip_any => if true, ignore items with the :any locale.
+          #                else, these items always return true
           define_method('locale?') do |*asked_locales|
             options = asked_locales.extract_options!
             options.reverse_merge!({
               :skip_any => false
             })
-            asked_locales.include?(self.locale) || (!options[:skip_any] && self.locale == 'any')
+            asked_locales.map(&:to_s).include?(self.locale) ||
+              (!options[:skip_any] && self.locale == 'any')
           end
 
           # usage:

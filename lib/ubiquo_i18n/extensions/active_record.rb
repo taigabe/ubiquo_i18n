@@ -132,114 +132,67 @@ module UbiquoI18n
           define_method('translate') do |*attrs|
             locale = attrs.first
             options = attrs.extract_options!
-            
-            self.while_being_translated lambda{
-              new_translation = self.class.new
-              new_translation.locale = locale
-              
-              # copy of attributes
-              clonable_attributes = options[:copy_all] ? :attributes_except_unique_for_translation : :untranslatable_attributes
-              self.send(clonable_attributes).each_pair do |attr, value|
-                new_translation.send("#{attr}=", value)
-              end
-              
-              # copy of relations
-              new_translation.copy_translatable_shared_relations_from self              
-              new_translation
-            }
-          end
-          
-          define_method('while_being_translated') do |closure|
-            # find or create the current translations list and add myself to it
-            current_translations = ::ActiveRecord::Base.instance_variable_get('@current_translations')
-            if !current_translations 
-              current_translations = [self]
-              ::ActiveRecord::Base.instance_variable_set('@current_translations', current_translations)
-            else 
-              current_translations << self
-            end            
-            
-            # execute the code and, no matter what happens, when this is finished remove myself from
-            # the current translations list
-            begin
-              # TODO replace with a block when migrating to Ruby 1.9
-              result = closure.call
-            ensure
-              current_translations = ::ActiveRecord::Base.instance_variable_get('@current_translations')
-              current_translations.delete(self)
+
+            new_translation = self.class.new
+            new_translation.locale = locale
+
+            # copy of attributes
+            clonable_attributes = options[:copy_all] ? :attributes_except_unique_for_translation : :untranslatable_attributes
+            self.send(clonable_attributes).each_pair do |attr, value|
+              new_translation.send("#{attr}=", value)
             end
-            result
+
+            # copy of relations
+            new_translation.copy_translatable_shared_relations_from self
+            new_translation
           end
-          
-          define_method('being_translated?') do
-            (ct = (::ActiveRecord::Base.instance_variable_get('@current_translations') || [])) && ct.include?(self)
-          end
-          
-          define_method('translation_on_process') do |on_process|
-            unless on_process == false
-              # find or create the current on process translations list and add myself to it
-              current_translations = ::ActiveRecord::Base.instance_variable_get('@current_translations_on_process')
-              if !current_translations 
-                current_translations = [self]
-                ::ActiveRecord::Base.instance_variable_set('@current_translations_on_process', current_translations)
-              else 
-                current_translations << self
-              end
-            else
-              current_translations = ::ActiveRecord::Base.instance_variable_get('@current_translations_on_process')
-              current_translations.delete(self)
-            end
-          end
-          
+
+
           # Looks for defined shared relations and performs a chain-update on them
           define_method('copy_translatable_shared_relations_from') do |model|
             self.class.is_translating_relations = true
-            self.translation_on_process true
             begin
               # act on reflections where translatable == false
-              self.class.reflections.select{|name, ref| ref.options[:translation_shared] == true}.each do |rel, values|
-                  model_rel = model.send(rel)
-                  record = [model_rel].flatten.first
-                  if record && record.class.is_translatable?
-                    all_relationship_contents = []
-                    [model_rel].flatten.each do |old_rel|
-                      existing_translation = old_rel.translations.first(:conditions => {:locale => self.locale})
-                      if existing_translation || old_rel.being_translated?
-                        if old_rel.being_translated?
-                        # maybe it doesn't exist in db but it does in memory 
-                        # it means that is currently being translated and there is something self-referential
-                          ::ActiveRecord::Base.instance_variable_get('@current_translations_on_process').each do |ct|
-                            if ct.class == old_rel.class && ct.locale == self.locale && ct.content_id == old_rel.content_id
-                              all_relationship_contents << ct
-                            end
-                          end
-                        else
-                          all_relationship_contents << existing_translation
-                        end
-                      elsif !old_rel.being_translated?
-                        all_relationship_contents << old_rel
-                      end
-                    end
-                  elsif record
-                    if values.macro == :belongs_to
-                      # we simply copy the attribute value
-                      all_relationship_contents = [model_rel]
+              self.class.reflections.select do |name, reflection|
+                reflection.options[:translation_shared] == true
+              end.each do |association_id, reflection_values|
+                association_values = model.send(association_id)
+                record = [association_values].flatten.first
+
+                if record && record.class.is_translatable?
+
+                  all_relationship_contents = []
+                  [association_values].flatten.each do |related_element|
+                    existing_translation = related_element.translations.locale(locale).first
+                    if existing_translation
+                      all_relationship_contents << existing_translation
                     else
-                      raise "This behaviour is not supported by ubiquo_i18n. Either use a has_many :through to a translatable model or mark the #{record.class} model as translatable"
+                      all_relationship_contents << related_element
                     end
-                  else 
-                    next
                   end
-                  all_relationship_contents = all_relationship_contents.first unless model_rel.is_a?(Array)
-                  self.send(rel.to_s + '=', all_relationship_contents)
-                  if values.macro == :belongs_to && !new_record?
-                    # belongs_to is not autosaved by rails when the association is not new
-                    save
+
+                elsif record
+
+                  if reflection_values.macro == :belongs_to
+                    # we simply copy the attribute value
+                    all_relationship_contents = [association_values]
+                  else
+                    raise "This behaviour is not supported by ubiquo_i18n. Either use a has_many :through to a translatable model or mark the #{record.class} model as translatable"
                   end
+
+                else
+                  next
+                end
+
+                all_relationship_contents = all_relationship_contents.first unless association_values.is_a?(Array)
+                self.send(association_id.to_s + '=', all_relationship_contents)
+                if reflection_values.macro == :belongs_to && !new_record?
+                  # belongs_to is not autosaved by rails when the association is not new
+                  save
+                end
               end
             ensure
               self.class.is_translating_relations = false
-              self.translation_on_process(false)
             end
           end
           
@@ -265,11 +218,10 @@ module UbiquoI18n
                   association.proxy_target.concat(elements)
                 end.flatten
 
-                # now localize the contents
+                # now "localize" the contents
                 translations_to_do = {}
                 association.proxy_target.each do |element|
-                  if (!element.locale?(locale) && (translation = element.in_locale(locale))) ||
-                      (translation = element.get_translation_from_memory)
+                  if !element.locale?(locale) && (translation = element.in_locale(locale))
                     translations_to_do[element] = translation
                   end
                 end
@@ -282,7 +234,7 @@ module UbiquoI18n
               else
                 # one-sized association, not a collection
                 if association && association.respond_to?(:locale) && association.locale?(locale)
-                  association = association.get_translation_from_memory|| association.in_locale(locale) || association
+                  association = association.in_locale(locale) || association
                 end
               end
               association
@@ -642,15 +594,6 @@ module UbiquoI18n
           end
         end
 
-        # Returns a currently on process translation if found
-        def get_translation_from_memory
-          ::ActiveRecord::Base.instance_variable_get('@current_translations_on_process').each do |on_process|
-            if on_process.class == self.class && on_process.locale == self.locale && on_process.content_id == self.content_id
-              return on_process
-            end
-          end
-          nil
-        end
       end
 
     end

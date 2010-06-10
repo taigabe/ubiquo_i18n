@@ -70,13 +70,18 @@ module UbiquoI18n
           end
 
           # usage:
-          # find all content in any locale: Model.locale(:ALL)
+          # find all content in any locale: Model.locale(:all)
           # find spanish content: Model.locale('es')
           # find spanish or english content. If spanish and english exists, gets the spanish version. Model.locale('es', 'en')
-          # find all content in spanish or any other locale if spanish dosn't exist: Model.locale('es', :ALL)
-          # find all content in any locale: Model.locale(:ALL)
+          # find all content in spanish or any other locale if spanish dosn't exist: Model.locale('es', :all)
+          # find all content in any locale: Model.locale(:all)
           #
           named_scope :locale, lambda{|*locales|
+            if locales.delete(:ALL)
+              locales << :all
+              ActiveSupport::Deprecation.warn('Use :all instead of :ALL in locale()', caller(5))
+            end
+
             {:locale_scoped => true, :locale_list => locales}
           }
                     
@@ -431,8 +436,8 @@ module UbiquoI18n
           if apply_locale_filter
             # build locale restrictions
             locales = merge_locale_list locales.reverse!
-            all_locales = locales.delete(:ALL)
-            
+            all_locales = locales.delete(:all)
+
             # add untranslatable instances if necessary
             locales << :any unless all_locales || locales.size == 0
 
@@ -503,12 +508,12 @@ module UbiquoI18n
         def merge_locale_list_rec previous, rest
           new = rest.first
           return previous.clone unless new
-          merged = if previous.empty? || previous.include?(:ALL)
+          merged = if previous.empty? || previous.include?(:all)
             new
           else
             previous & new
           end
-          merged = previous if merged.empty? && new.include?(:ALL)
+          merged = previous if merged.empty? && new.include?(:all)
           merge_locale_list_rec merged, rest[1,rest.size]
         end
 

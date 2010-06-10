@@ -34,13 +34,13 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_model(:content_id => 2, :locale => 'es')
     create_model(:content_id => 2, :locale => 'en')
     
-    assert_equal %w{ca es}, TestModel.locale('ca', :ALL).map(&:locale)
-    assert_equal %w{es en}, TestModel.locale('en', :ALL).map(&:locale)
-    assert_equal %w{es es}, TestModel.locale('es', :ALL).map(&:locale)
-    assert_equal %w{ca en}, TestModel.locale('ca', 'en', :ALL).map(&:locale)
+    assert_equal %w{ca es}, TestModel.locale('ca', :all).map(&:locale)
+    assert_equal %w{es en}, TestModel.locale('en', :all).map(&:locale)
+    assert_equal %w{es es}, TestModel.locale('es', :all).map(&:locale)
+    assert_equal %w{ca en}, TestModel.locale('ca', 'en', :all).map(&:locale)
     
-    # :ALL position is indifferent
-    assert_equal %w{es en}, TestModel.locale(:ALL, 'en').map(&:locale)
+    # :all position is indifferent
+    assert_equal %w{es en}, TestModel.locale(:all, 'en').map(&:locale)
   end
   
   def test_search_with_chained_locale_call
@@ -48,10 +48,10 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_model(:content_id => 2, :locale => 'ca')
     create_model(:content_id => 3, :locale => 'en')
     
-    assert_equal %w{ca}, TestModel.locale('en','es', :ALL).locale('es','ca').locale('ca').map(&:locale)
-    assert_equal %w{ca}, TestModel.locale('ca').locale('en','es', :ALL).map(&:locale)
-    assert_equal %w{ca}, TestModel.locale('ca').locale(:ALL).locale(:ALL).map(&:locale)
-    assert_equal %w{}, TestModel.locale('ca').locale(:ALL).locale('en').map(&:locale)
+    assert_equal %w{ca}, TestModel.locale('en','es', :all).locale('es','ca').locale('ca').map(&:locale)
+    assert_equal %w{ca}, TestModel.locale('ca').locale('en','es', :all).map(&:locale)
+    assert_equal %w{ca}, TestModel.locale('ca').locale(:all).locale(:all).map(&:locale)
+    assert_equal %w{}, TestModel.locale('ca').locale(:all).locale('en').map(&:locale)
     assert_equal %w{}, TestModel.locale('es').locale('ca').map(&:locale)
   end
 
@@ -83,7 +83,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_model(:content_id => 1, :field1 => '2', :locale => 'en')
     
     assert_equal %w{}, TestModel.locale('es').all(:conditions => {:field1 => '2'}).map(&:locale)
-    assert_equal %w{en}, TestModel.locale('es', :ALL).all(:conditions => {:field1 => '2'}).map(&:locale)
+    assert_equal %w{en}, TestModel.locale('es', :all).all(:conditions => {:field1 => '2'}).map(&:locale)
   end
   
   def test_search_by_locale_with_find_scope
@@ -97,10 +97,10 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [], TestModel.field1_is_2.locale('es')
     assert_equal 1, TestModel.field1_is_2.locale('en').size
 
-    one = TestModel.field1_is_1.locale('en', :ALL)
+    one = TestModel.field1_is_1.locale('en', :all)
     assert_equal 1, one.size
     assert_equal 'es', one.first.locale
-    two = TestModel.field1_is_2.locale('es', :ALL)
+    two = TestModel.field1_is_2.locale('es', :all)
     assert_equal 1, two.size
     assert_equal 'en', two.first.locale
   end
@@ -111,8 +111,8 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_related_model(:test_model => model, :field1 => '2')
     
     assert_equal [model], TestModel.all(:conditions => "related_test_models.field1 = '1'", :include => :related_test_models)
-    assert_equal [], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '10'", :include => :related_test_models)
-    assert_equal [model], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '1'", :include => :related_test_models)
+    assert_equal [], TestModel.locale('es', :all).all(:conditions => "related_test_models.field1 = '10'", :include => :related_test_models)
+    assert_equal [model], TestModel.locale('es', :all).all(:conditions => "related_test_models.field1 = '1'", :include => :related_test_models)
   end
   
   def test_search_by_locale_with_joins
@@ -121,8 +121,8 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_related_model(:test_model => model, :field1 => '2')
     
     assert_equal [model], TestModel.all(:conditions => "related_test_models.field1 = '1'", :joins => :related_test_models)
-    assert_equal [], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '10'", :joins => :related_test_models)
-    assert_equal [model], TestModel.locale('es', :ALL).all(:conditions => "related_test_models.field1 = '1'", :joins => :related_test_models)
+    assert_equal [], TestModel.locale('es', :all).all(:conditions => "related_test_models.field1 = '10'", :joins => :related_test_models)
+    assert_equal [model], TestModel.locale('es', :all).all(:conditions => "related_test_models.field1 = '1'", :joins => :related_test_models)
   end
   
   def test_search_by_locale_with_joins_in_another_named_scope
@@ -139,9 +139,9 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     create_related_model(:test_model => model, :field1 => '2')
     
     assert_equal [model], TestModel.scope_for_test(1).all
-    assert_equal [], TestModel.locale('es', :ALL).scope_for_test(10).all
-    assert_equal [], TestModel.scope_for_test(10).locale('es', :ALL).all
-    assert_equal [model], TestModel.locale('es', :ALL).scope_for_test(1).all
+    assert_equal [], TestModel.locale('es', :all).scope_for_test(10).all
+    assert_equal [], TestModel.scope_for_test(10).locale('es', :all).all
+    assert_equal [model], TestModel.locale('es', :all).scope_for_test(1).all
   end
   
   def test_search_by_locale_with_limit
@@ -152,9 +152,9 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
       create_model(:locale => 'en', :field1 => '2')
     end
     
-    assert_equal 40, TestModel.locale('es', :ALL).count
-    assert_equal 10, TestModel.locale('es', :ALL).all(:conditions => "field1 = '1'", :limit => 10).size
-    assert_equal 5, TestModel.locale('en', :ALL).all(:conditions => "field1 = '1'", :limit => 5).size
+    assert_equal 40, TestModel.locale('es', :all).count
+    assert_equal 10, TestModel.locale('es', :all).all(:conditions => "field1 = '1'", :limit => 10).size
+    assert_equal 5, TestModel.locale('en', :all).all(:conditions => "field1 = '1'", :limit => 5).size
   end
   
   def test_search_by_locale_with_group_by
@@ -165,7 +165,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
       create_model(:locale => 'en', :field1 => '2')
     end
     
-    assert_equal_set [10, 20], TestModel.locale('es', :ALL).all(:select => 'COUNT(*) as numvalues', :group => :field1).map(&:numvalues).map(&:to_i)
+    assert_equal_set [10, 20], TestModel.locale('es', :all).all(:select => 'COUNT(*) as numvalues', :group => :field1).map(&:numvalues).map(&:to_i)
   end
   
   def test_search_by_locale_without_explicit_find
@@ -206,8 +206,8 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     model = create_model(:locale => 'any', :field1 => '1')
     assert_equal [model], TestModel.locale('es')
     assert_equal 1, TestModel.locale('es').count
-    assert_equal [model], TestModel.locale(:ALL)
-    assert_equal 1, TestModel.locale(:ALL).count
+    assert_equal [model], TestModel.locale(:all)
+    assert_equal 1, TestModel.locale(:all).count
   end
   
   def test_search_by_locale_should_work_with_symbols
@@ -223,7 +223,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [ca], FirstSubclass.locale('ca')
     assert_equal 1, FirstSubclass.locale('ca').count
     assert_equal [es], FirstSubclass.locale('es')
-    assert_equal 1, FirstSubclass.locale(:ALL).count
+    assert_equal 1, FirstSubclass.locale(:all).count
   end
 
   def test_search_by_locale_in_subclass_doesnt_affect_superclass
@@ -243,7 +243,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
       assert_equal [ca], klass.locale('ca')
       assert_equal 1, klass.locale('ca').count
       assert_equal [es], klass.locale('es')
-      assert_equal 1, klass.locale(:ALL).count
+      assert_equal 1, klass.locale(:all).count
     end
   end
 
@@ -409,9 +409,9 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     TestModel.delete_all
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
-    assert_equal es.id, en.in_locale('es', :ALL).id
-    assert_equal en.id, en.in_locale('en', :ALL).id
-    assert_equal es.id, en.in_locale('ca', 'es', :ALL).id
+    assert_equal es.id, en.in_locale('es', :all).id
+    assert_equal en.id, en.in_locale('en', :all).id
+    assert_equal es.id, en.in_locale('ca', 'es', :all).id
   end
   
   def test_destroy_contents

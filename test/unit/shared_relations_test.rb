@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + "/../test_helper.rb"
 
-class Ubiquo::TranslatableTest < ActiveSupport::TestCase
+class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
 
   # In these tests names, "simple" involves a non-translatable model, else "translatable" is used
 
@@ -129,8 +129,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal a, newa.chain_test_model_b.chain_test_model_c.chain_test_model_a
 
     newa.save
-    # anyway, chain_test_model_c is in another language
-    assert_equal a, newa.chain_test_model_b.chain_test_model_c.chain_test_model_a
+    assert_equal a.content_id, newa.chain_test_model_b.chain_test_model_c.chain_test_model_a.content_id
   end
   
   def test_should_copy_shared_relations_translatable_has_one_creation_case
@@ -301,6 +300,33 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     ca.translate('en', :copy_all => true)
     ca.reload
     assert_equal original_id, ca.test_models.first.id
+  end
+
+  def test_should_return_correct_count_in_shared_translations
+    ca = TestModel.create(:locale => 'ca')
+    ca.test_models << TestModel.create(:locale => 'ca')
+    assert_equal 1, ca.test_models.count
+
+    en = ca.translate('en')
+    en.save
+    assert_equal 1, ca.test_models.count
+  end
+
+  def test_should_accept_relations_from_other_locales
+    ca = TestModel.create(:locale => 'ca')
+    ca.test_models << TestModel.create(:locale => 'ca')
+    en = ca.translate('en')
+    en.save
+    ca.test_models << TestModel.create(:locale => 'en')
+
+    assert_equal 2, ca.test_models.count
+    assert_equal 2, en.reload.test_models.count
+
+    en_relation = ca.test_models.last.translate('en')
+    en_relation.save
+
+    assert_equal 2, ca.test_models.count
+    assert_equal 2, en.test_models.count
   end
 
 end

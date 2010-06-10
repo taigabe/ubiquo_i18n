@@ -109,6 +109,11 @@ module UbiquoI18n
           define_method('translations') do
             self.class.translations(self)
           end
+
+          # Returns an array containing self and its translations
+          define_method('with_translations') do
+            [self] + translations
+          end
           
           # Creates a new instance of the translatable class, using the common
           # values from an instance sharing the same content_id
@@ -276,7 +281,7 @@ module UbiquoI18n
                 association.loaded
               else
                 # one-sized association, not a collection
-                if association && association.respond_to?(:locale) && association.locale != locale
+                if association && association.respond_to?(:locale) && association.locale?(locale)
                   association = association.get_translation_from_memory|| association.in_locale(locale) || association
                 end
               end
@@ -284,6 +289,18 @@ module UbiquoI18n
             end
 
             alias_method_chain association_id, :shared_translations
+
+            # Syncs the deletion of association elements across translations
+            add_association_callbacks(
+              association_id,
+              :after_remove => Proc.new{ |record, removed|
+                record.class.translating_relations do
+                  record.translations.each do |translation|
+                    translation.send(association_id).delete removed.with_translations
+                  end
+                end
+              }
+            )
           end
 
         end
@@ -309,10 +326,10 @@ module UbiquoI18n
         # follow the superclass chain to set the value        
         def instance_variable_inherited_set(value, var_name, method_name = nil)
           method_name ||= var_name
-          if !instance_variable_get("@#{var_name}").nil?
+          if self.superclass.respond_to?(method_name)
+            self.superclass.send(method_name, value)
+          else
             instance_variable_set("@#{var_name}", value)
-           elsif self.superclass.respond_to?(method_name)
-             self.superclass.send(method_name, value)
           end
         end
 
@@ -340,7 +357,19 @@ module UbiquoI18n
         def is_translating_relations=(value)
           instance_variable_inherited_set(value, "is_translating_relations", "is_translating_relations=")
         end
-        
+
+        # Wrapper for translating relations preventing cyclical chain updates
+        def translating_relations
+          unless is_translating_relations
+            self.is_translating_relations = true
+            begin
+              yield
+            ensure
+              self.is_translating_relations = false
+            end
+          end
+        end
+
         # Returns true if the translatable propagation has been set to stop
         def stop_translatable_propagation
           instance_variable_inherited_get("stop_translatable_propagation")

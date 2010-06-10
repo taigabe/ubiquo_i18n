@@ -25,7 +25,7 @@ module UbiquoI18n
       
       # For a given model, show their translations with a link to them
       def show_translations(model, options = {})
-        return if model.locale?(:any)
+        return if model.in_locale?(:any)
         render :partial => "shared/ubiquo/model_translations", 
                :locals => {:model => model, :options => options}
       end

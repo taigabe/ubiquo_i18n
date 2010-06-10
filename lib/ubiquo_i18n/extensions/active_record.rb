@@ -60,7 +60,7 @@ module UbiquoI18n
           # The last parameter can be an options hash
           #   :skip_any => if true, ignore items with the :any locale.
           #                else, these items always return true
-          define_method('locale?') do |*asked_locales|
+          define_method('in_locale?') do |*asked_locales|
             options = asked_locales.extract_options!
             options.reverse_merge!({
               :skip_any => false
@@ -229,7 +229,7 @@ module UbiquoI18n
                 # now "localize" the contents
                 translations_to_do = {}
                 association.proxy_target.each do |element|
-                  if !element.locale?(locale) && (translation = element.in_locale(locale))
+                  if !element.in_locale?(locale) && (translation = element.in_locale(locale))
                     translations_to_do[element] = translation
                   end
                 end
@@ -241,7 +241,7 @@ module UbiquoI18n
                 association.loaded
               else
                 # one-sized association, not a collection
-                if association && association.respond_to?(:locale) && association.locale?(locale)
+                if association && association.respond_to?(:in_locale?) && association.in_locale?(locale)
                   association = association.in_locale(locale) || association
                 end
               end

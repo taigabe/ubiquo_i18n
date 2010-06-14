@@ -129,7 +129,6 @@ module UbiquoI18n
           # Options can be one of these:
           #   :copy_all => if true, will copy all the attributes from the original, even the translatable ones
           def translate(content_id, locale, options = {})
-            options[:copy_all] = options[:copy_all].nil? ? true : options[:copy_all]
             original = find_by_content_id(content_id)
             new_translation = original ? original.translate(locale, options) : new
             new_translation.locale = locale
@@ -140,6 +139,7 @@ module UbiquoI18n
           define_method('translate') do |*attrs|
             locale = attrs.first
             options = attrs.extract_options!
+            options[:copy_all] = options[:copy_all].nil? ? true : options[:copy_all]
 
             new_translation = self.class.new
             new_translation.locale = locale

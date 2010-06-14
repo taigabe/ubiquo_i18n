@@ -342,6 +342,17 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert ca.save
   end
 
+  def test_translate_should_create_translation_with_correct_values_when_copy_all_true_by_default_in_instances
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    ca = es.translate('ca')
+    assert_nil ca.id
+    assert_equal es.content_id, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert_equal 'val', ca.field1
+    assert_equal 'val', ca.field2
+    assert ca.save
+  end
+
   def test_translate_should_create_translation_with_correct_values_when_copy_all_false
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     ca = TestModel.translate(1, 'ca', :copy_all => false)
@@ -373,7 +384,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   
   def test_instance_translate_should_create_translation_with_correct_values
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
-    ca = es.translate('ca')
+    ca = es.translate('ca', :copy_all => false)
     assert_nil ca.id
     assert_equal es.content_id, ca.content_id
     assert_equal 'ca', ca.locale
@@ -429,9 +440,9 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     es.inheritance_test_models << InheritanceTestModel.create(:locale => 'es')
     es.inheritance_test_models << InheritanceTestModel.create(:locale => 'es')
-    en = es.translate('en', :copy_all => true)
+    en = es.translate('en')
     en.save
-    ca = es.translate('ca', :copy_all => true)
+    ca = es.translate('ca')
     ca.save
     assert_equal 3, TestModel.count
     assert_equal 2, InheritanceTestModel.count
@@ -443,9 +454,9 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   def test_destroy_contents_and_dependants_with_itself
     es = create_model(:locale => 'es', :field1 => 'val', :field2 => 'val')
     es.test_models << create_model(:locale => 'es')
-    en = es.translate('en', :copy_all => true)
+    en = es.translate('en')
     en.save
-    ca = es.translate('ca', :copy_all => true)
+    ca = es.translate('ca')
     ca.save
     assert_equal 4, TestModel.count
     ca.reload.destroy_content # reload to avoid #219

@@ -25,5 +25,15 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
       assert l.errors.on(:iso_code)
     end
   end
-      
+
+  def test_should_store_current_locale
+    Locale.current = 'ca'
+    assert_equal 'ca', Locale.current
+  end
+
+  def test_should_store_current_locale_as_symbol
+    Locale.current = :ca
+    assert_equal :ca, Locale.current
+  end
+
 end

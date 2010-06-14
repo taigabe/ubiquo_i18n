@@ -9,6 +9,8 @@ class Locale < ActiveRecord::Base
   #there are only one default locale, but named scopes don't support find single items
   named_scope :defaults, {:conditions => {:is_default => true}}
 
+  cattr_accessor :current
+
   def self.default
     defaults.first.try(:iso_code)
   end   

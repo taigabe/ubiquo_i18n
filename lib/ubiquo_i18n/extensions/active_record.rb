@@ -524,20 +524,23 @@ module UbiquoI18n
         def self.included(klass)
           klass.alias_method_chain :update, :translatable
           klass.alias_method_chain :create, :translatable
-          klass.alias_method_chain :create, :i18n_content_id
+          klass.alias_method_chain :create, :i18n_fields
           
         end
         
         # proxy to add a new content_id if empty on creation
-        def create_with_i18n_content_id
+        def create_with_i18n_fields
           if self.class.is_translatable?
             # we do this even if there is not currently any tr. attribute, 
             # as long as is a translatable model
             unless self.content_id
               self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_$_content_id")
             end
+            unless self.locale
+              self.locale = Locale.current
+            end
           end
-          create_without_i18n_content_id
+          create_without_i18n_fields
         end
         
         # Whenever we update existing content or create a translation, the expected behaviour is the following

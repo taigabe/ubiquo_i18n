@@ -331,6 +331,41 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal 'val', es_m1.reload.field2
   end
 
+  def test_update_in_another_locale_should_create_correct_instance
+    Locale.current = 'es'
+    instance = create_model
+    assert_equal 'es', instance.locale
+  end
+
+  def test_update_in_another_locale_should_update_correct_instance
+    ca = create_model(:locale => 'ca', :field2 => 'shared', :field1 => 'uniq_ca')
+    Locale.current = 'es'
+    assert_difference 'TestModel.count' do
+      ca.update_attribute :field1, 'uniq_es'
+    end
+    es = TestModel.last
+    assert_equal 'es', es.locale
+    assert_equal 'uniq_ca', ca.reload.field1
+    assert_equal 'shared', ca.field2
+    assert_equal 'shared', es.field2
+    assert_equal 'uniq_es', es.field1
+  end
+
+  def test_update_in_another_locale_should_update_correct_existing_instance
+    ca = create_model(:locale => 'ca', :field2 => 'shared', :field1 => 'uniq_ca')
+    es = ca.translate('es')
+    es.save
+
+    Locale.current = 'es'
+    assert_no_difference 'TestModel.count' do
+      ca.update_attribute :field2, 'new_shared'
+    end
+
+    assert_equal 'es', es.locale
+    assert_equal 'new_shared', ca.reload.field2
+    assert_equal 'new_shared', es.reload.field2
+  end
+
   def test_translate_should_create_translation_with_correct_values_when_copy_all_true_by_default
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     ca = TestModel.translate(1, 'ca')

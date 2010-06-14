@@ -241,7 +241,7 @@ module UbiquoI18n
                 association.loaded
               else
                 # one-sized association, not a collection
-                if association && association.respond_to?(:in_locale?) && association.in_locale?(locale)
+                if association && association.respond_to?(:in_locale?) && !association.in_locale?(locale)
                   association = association.in_locale(locale) || association
                 end
               end
@@ -552,8 +552,20 @@ module UbiquoI18n
         end
 
         def update_with_translatable
-          update_without_translatable
-          update_translations
+          if self.class.is_translatable? && !@stop_translatable_propagation
+            if Locale.current && !in_locale?(Locale.current)
+              translation = in_locale(Locale.current) || translate(Locale.current)
+              self.send(:attributes_except_unique_for_translation).each_pair do |attr, value|
+                translation.send("#{attr}=", value)
+              end
+              translation.save
+            else
+              update_without_translatable
+              update_translations
+            end
+          else
+            update_without_translatable
+          end
         end
         
         def update_translations

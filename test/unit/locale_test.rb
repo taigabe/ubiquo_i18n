@@ -1,7 +1,11 @@
 require File.dirname(__FILE__) + "/../test_helper.rb"
 
 class Ubiquo::LocaleTest < ActiveSupport::TestCase
-  
+
+  def teardown
+    Locale.current = nil
+  end
+
   def test_should_create_locale
     assert_difference 'Locale.count' do
       locale = create_locale

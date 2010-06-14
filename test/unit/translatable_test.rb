@@ -122,12 +122,12 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
   end
 
   def test_should_update_non_translatable_attributes_in_instances_sharing_content_id_on_update
-    test_1 = create_model(:field1 => 'f1', :field2 => 'f2', :locale => 'ca')
-    test_2 = create_model(:field1 => 'newf1', :field2 => 'newf2', :locale => 'es', :content_id => test_1.content_id)
-    test_1.update_attribute :field2, 'common'
-    assert_equal 'common', test_2.reload.field2
-    test_2.update_attribute :field1, 'mine'
-    assert_equal 'f1', test_1.reload.field1
+    ca = create_model(:field1 => 'f1', :field2 => 'f2', :locale => 'ca')
+    es = create_model(:field1 => 'newf1', :field2 => 'newf2', :locale => 'es', :content_id => ca.content_id)
+    ca.update_attribute :field2, 'common'
+    assert_equal 'common', es.reload.field2
+    es.update_attribute :field1, 'mine'
+    assert_equal 'f1', ca.reload.field1
   end
 
   def test_should_not_update_non_translatable_attributes_if_using_without_updating_translations

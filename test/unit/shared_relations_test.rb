@@ -329,6 +329,38 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 2, en.test_models.count
   end
 
+  def test_should_return_correct_relations_from_other_locales
+    ca = TestModel.create(:locale => 'ca')
+    ca.test_models << (ca_relation = TestModel.create(:locale => 'ca'))
+    en = ca.translate('en')
+    en.save
+    ca.test_models << TestModel.create(:locale => 'en')
+
+    assert_equal_set ['ca', 'en'], ca.test_models.map(&:locale)
+    assert_equal_set ['ca', 'en'], en.reload.test_models.map(&:locale)
+
+    en_relation = ca_relation.translate('en')
+    en_relation.save
+
+    assert_equal_set ['ca', 'en'], ca.test_models.map(&:locale).uniq
+    assert_equal ['en'], en.test_models.map(&:locale).uniq
+  end
+
+  def test_should_return_correct_relations_from_other_locales_belongs_to_case
+    ca = TestModel.create(:locale => 'ca')
+    ca.test_model = parent = TestModel.create(:locale => 'ca')
+    ca.save
+
+    en = ca.translate('en')
+    en.save
+
+    parent_en = parent.translate('en')
+    parent_en.save
+
+    assert_equal parent, ca.test_model
+    assert_equal parent_en, en.test_model
+  end
+
 end
 
 create_test_model_backend

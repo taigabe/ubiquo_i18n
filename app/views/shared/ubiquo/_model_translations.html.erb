@@ -1,7 +1,7 @@
 <% translations = model.translations %>
 <h3><%= t("ubiquo.i18n.translations") %></h3>
   <% Locale.active.ordered_alphabetically.each do |l| %>
-    <% unless model.locale?(l.iso_code, :skip_any => true) %>
+    <% unless model.in_locale?(l.iso_code, :skip_any => true) %>
       <% translated = translations.select{|t| t.locale == l.iso_code}.first %>
       
       <div class="translation<%= translated && translated.id == params[:preview_id].to_i ? " selected" : ""%>">

@@ -20,10 +20,12 @@ module UbiquoI18n
         #   :timestamps => set to false to avoid translatable (i.e. independent per translation) timestamps
 
         def translatable(*attrs)
-          @really_translatable_class = self
-          @translatable = true
           # inherit translatable attributes
           @translatable_attributes = self.translatable_attributes || []
+
+          @really_translatable_class = self
+          @translatable = true
+
           # extract and parse options
           options = attrs.extract_options!
           # add attrs from this class
@@ -215,58 +217,92 @@ module UbiquoI18n
           return unless self.is_translatable?
 
           associations.each do |association_id|
-            define_method "#{association_id}_with_shared_translations" do
-              association = self.send("#{association_id}_without_shared_translations")
-              if association.is_a? Array
-                translations.map do |translation|
-                  elements = translation.send("#{association_id}_without_shared_translations")
-                  elements.reject! do |element|
-                    association.proxy_target.map(&:content_id).include? element.content_id
-                  end
-                  association.proxy_target.concat(elements)
-                end.flatten
 
-                # now "localize" the contents
-                translations_to_do = {}
-                association.proxy_target.each do |element|
-                  if !element.in_locale?(locale) && (translation = element.in_locale(locale))
-                    translations_to_do[element] = translation
+            reflection = reflections[association_id]
+            reflection.options[:translation_shared] = true
+
+            unless is_translation_shared_initialized? association_id
+              define_method "#{association_id}_with_shared_translations" do
+
+                association = self.send("#{association_id}_without_shared_translations")
+                is_collection = association.respond_to? :count
+                # the target needs to be loaded
+                association.inspect
+
+                if is_collection && reflection.klass.is_translatable?
+                  translations.each do |translation|
+                    elements = translation.send("#{association_id}_without_shared_translations")
+                    elements.reject! do |element|
+                      association.proxy_target.map(&:content_id).include? element.content_id
+                    end
+                    association.proxy_target.concat(elements)
                   end
-                end
-                translations_to_do.each_pair do |foreign, translation|
-                  association.proxy_target.delete foreign
-                  association.proxy_target << translation
+
+                  # now "localize" the contents
+                  translations_to_do = {}
+                  association.proxy_target.each do |element|
+                    if !element.in_locale?(locale) && (translation = element.in_locale(locale))
+                      translations_to_do[element] = translation
+                    end
+                  end
+                  translations_to_do.each_pair do |foreign, translation|
+                    association.proxy_target.delete foreign
+                    association.proxy_target << translation
+                  end
+
+                  association.loaded
+
+                # it's a proxy and sometimes does not return the same as .nil?
+                elsif !is_collection && !association.is_a?(NilClass)
+                  # one-sized association, not a collection
+                  if association.class.is_translatable? && !association.in_locale?(locale)
+                    association = association.in_locale(locale) || association
+                  end
+
+                elsif association.is_a? NilClass
+                  # in a has_one, with a nil association we have to look at translations
+                  translations.map do |translation|
+                    element = translation.send("#{association_id}_without_shared_translations")
+                    if element
+                      if element.class.is_translatable? && !element.in_locale?(locale)
+                        element = element.in_locale(locale)
+                      end
+                      association = element
+                      break
+                    end
+                  end
+
                 end
 
-                association.loaded
-              else
-                # one-sized association, not a collection
-                if association && association.respond_to?(:in_locale?) && !association.in_locale?(locale)
-                  association = association.in_locale(locale) || association
-                end
+                association
               end
-              association
+
+              alias_method_chain association_id, :shared_translations
+
+              # Syncs the deletion of association elements across translations
+              add_association_callbacks(
+                association_id,
+                :after_remove => Proc.new{ |record, removed|
+                  record.class.translating_relations do
+                    record.translations.each do |translation|
+                      translation.send(association_id).delete removed.with_translations
+                    end
+                  end
+                }
+              )
+
+              # Marker to avoid recursive redefinition
+              initialize_translation_shared association_id
+
             end
 
-            alias_method_chain association_id, :shared_translations
-
-            # Syncs the deletion of association elements across translations
-            add_association_callbacks(
-              association_id,
-              :after_remove => Proc.new{ |record, removed|
-                record.class.translating_relations do
-                  record.translations.each do |translation|
-                    translation.send(association_id).delete removed.with_translations
-                  end
-                end
-              }
-            )
           end
 
         end
 
         # Given a reflection, will process the :translation_shared option
         def process_translation_shared reflection
+          reset_translation_shared reflection.name
           if reflection.options[:translation_shared]
             share_translations_for reflection.name
           end
@@ -276,18 +312,20 @@ module UbiquoI18n
         # follow the superclass chain to ask the value        
         def instance_variable_inherited_get(var_name, method_name = nil)
           method_name ||= var_name
-          instance_variable_get("@#{var_name}") ||
-            (instance_variable_get("@#{var_name}").nil? &&
-            self.superclass.respond_to?(method_name) &&
-            self.superclass.send(method_name))
+          value = instance_variable_get("@#{var_name}")
+          if value.nil? && !@really_translatable_class
+            self.superclass.respond_to?(method_name) && self.superclass.send(method_name)
+          else
+            value
+          end
         end
 
         # Sets the value for the var_name instance variable, or if this is nil,
         # follow the superclass chain to set the value        
         def instance_variable_inherited_set(value, var_name, method_name = nil)
           method_name ||= var_name
-          if self.superclass.respond_to?(method_name)
-            self.superclass.send(method_name, value)
+          if !@really_translatable_class
+            self.superclass.respond_to?(method_name) && self.superclass.send(method_name, value)
           else
             instance_variable_set("@#{var_name}", value)
           end
@@ -296,17 +334,17 @@ module UbiquoI18n
         # Returns true if the class is marked as translatable
         def is_translatable?
           instance_variable_inherited_get("translatable", "is_translatable?")
-        end  
+        end
         
         # Returns a list of translatable attributes for this class
         def translatable_attributes
           instance_variable_inherited_get("translatable_attributes")
-        end   
+        end
         
         # Returns the class that really calls the translatable method
         def really_translatable_class
           instance_variable_inherited_get("really_translatable_class")
-        end 
+        end
         
         # Returns true if this class is currently translating relations
         def is_translating_relations
@@ -339,7 +377,33 @@ module UbiquoI18n
         def stop_translatable_propagation=(value)
           instance_variable_inherited_set(value, "stop_translatable_propagation", "stop_translatable_propagation=")
         end
-             
+
+        # Returns true if the translation-shared association has been initialized
+        def is_translation_shared_initialized? association_id = nil
+          associations = initialized_translation_shared_list
+          associations.is_a?(Array) && associations.include?(association_id)
+        end
+
+        # Returns the list of associations initialized
+        def initialized_translation_shared_list
+          instance_variable_inherited_get("initialized_translation_shared_list")
+        end
+
+        # Marks the association as initialized
+        def initialize_translation_shared association_id
+          new_association = Array(association_id)
+          associations = instance_variable_inherited_get("initialized_translation_shared_list") || []
+          associations +=  new_association
+          instance_variable_inherited_set(associations, "initialized_translation_shared_list", "initialize_translation_shared")
+        end
+
+        # Unmarks an association as translation-shared initialized
+        def reset_translation_shared association_id
+          reset_association = Array(association_id)
+          associations = instance_variable_inherited_get("initialized_translation_shared_list") || []
+          associations -=  reset_association
+          instance_variable_inherited_set(associations, "initialized_translation_shared_list", "reset_translation_shared")
+        end
         
         # Applies the locale filter if needed, then performs the normal find method
         def find_with_locale_filter(*args)
@@ -558,6 +622,7 @@ module UbiquoI18n
               self.send(:attributes_except_unique_for_translation).each_pair do |attr, value|
                 translation.send("#{attr}=", value)
               end
+#              translation.copy_translatable_shared_relations_from self
               translation.save
             else
               update_without_translatable

@@ -361,6 +361,43 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal parent_en, en.test_model
   end
 
+  def test_share_translations_for
+    assert !TestModel.reflections[:unshared_related_test_models].options[:translation_shared]
+
+    TestModel.class_eval do
+      share_translations_for :unshared_related_test_models
+    end
+    assert TestModel.reflections[:unshared_related_test_models].options[:translation_shared]
+
+    TestModel.reflections[:unshared_related_test_models].instance_variable_set('@options', {})
+  end
+
+  def test_share_translations_for_multiple_times_does_not_crash
+    assert !TestModel.reflections[:unshared_related_test_models].options[:translation_shared]
+
+    TestModel.class_eval do
+      share_translations_for :unshared_related_test_models, :unshared_related_test_models
+    end
+
+    TestModel.reflections[:unshared_related_test_models].instance_variable_set('@options', {})
+  end
+
+  def test_share_translations_for_translation_shared_belongs_to_untranslated
+    en = InheritanceTestModel.create(:locale => 'en')
+    en.related_test_model = RelatedTestModel.create
+    ca = en.translate('ca')
+    assert ca.related_test_model
+  end
+
+  def test_share_translations_for_translation_shared_has_one
+    en = OneOneTestModel.create(:locale => 'en')
+    en.one_one_test_model = OneOneTestModel.create(:locale => 'en')
+    ca = en.translate('ca')
+    ca.save
+    assert ca.reload.one_one_test_model
+    assert_equal ca.one_one_test_model, en.reload.one_one_test_model
+  end
+
 end
 
 create_test_model_backend

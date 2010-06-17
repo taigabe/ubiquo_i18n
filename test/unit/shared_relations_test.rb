@@ -4,6 +4,10 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
 
   # In these tests names, "simple" involves a non-translatable model, else "translatable" is used
 
+  def setup
+    Locale.current = nil
+  end
+
   def test_copy_shared_relations_simple_has_many_case
     TestModel.reflections[:unshared_related_test_models].instance_variable_set('@options',{:translation_shared => true})
     test_model = create_model(:locale => 'ca')

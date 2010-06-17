@@ -2,6 +2,9 @@ require File.dirname(__FILE__) + "/../test_helper.rb"
 
 class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
 
+  def setup
+    Locale.current = nil
+  end
 
   def test_simple_filter
     create_model(:content_id => 1, :locale => 'es')

@@ -4,6 +4,10 @@ class Ubiquo::LocalesControllerTest < ActionController::TestCase
 
   use_ubiquo_fixtures
   
+  def teardown
+    Locale.current = nil
+  end
+
   def test_should_get_show
     assert_not_equal 0, Locale.count
     get :show

@@ -513,7 +513,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert any.in_locale?('jp', 'fr', 'ca', 'es')
     assert any.in_locale?('any')
   end
-  
+
   def test_compare_locales_without_any
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
@@ -538,6 +538,16 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert !any.in_locale?(:en, :skip_any => true)
     assert !any.in_locale?(:jp, :fr, :ca, :es, :skip_any => true)
     assert any.in_locale?(:any, :skip_any => true)
+  end
+
+  def test_compare_locales_with_locale_object
+    es_locale = Locale.create(:iso_code => 'es')
+    ca_locale = Locale.create(:iso_code => 'ca')
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    en = create_model(:content_id => 1, :locale => 'en', :field1 => 'val', :field2 => 'val')
+    assert es.in_locale?(es_locale)
+    assert !en.in_locale?(es_locale)
+    assert !es.in_locale?(ca_locale)
   end
 
   def test_named_scopes_work_on_subclasses_if_previously_loaded

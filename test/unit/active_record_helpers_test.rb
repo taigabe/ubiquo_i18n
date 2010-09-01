@@ -152,7 +152,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     TestModel.class_eval do
       named_scope :scope_for_test, lambda{|id|
         {
-          :joins => 'INNER JOIN "related_test_models" ON related_test_models.test_model_id = test_models.id',
+          :joins => 'INNER JOIN related_test_models ON related_test_models.test_model_id = test_models.id',
           :conditions => ["related_test_models.field1 = ?", id.to_s]
         }
       }

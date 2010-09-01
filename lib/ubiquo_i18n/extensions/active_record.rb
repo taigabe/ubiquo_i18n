@@ -531,22 +531,19 @@ module UbiquoI18n
           
             begin
               # record possible scoped conditions
-              previous_joins = merge_includes(scope(:find, :include), merge_includes(scope(:find, :joins), options[:joins]))
               previous_conditions = scope(:find, :conditions)
-              
+
               # removes paginator scope.
-              with_exclusive_scope(:find => {:limit => nil, :offset => nil}) do
+              with_exclusive_scope(:find => {:limit => nil, :offset => nil, :joins => scope(:find, :joins)}) do
                 conditions = merge_conditions(locale_conditions, options[:conditions])
                 conditions = merge_conditions(conditions, previous_conditions)
-                join_dependency = ::ActiveRecord::Associations::ClassMethods::JoinDependency.new(self, previous_joins, options[:joins])
-                joins_sql = join_dependency.join_associations.collect{|join| join.association_join }.join
 
                 ids = find(:all, {
                     :select => "#{self.table_name}.id, #{self.table_name}.content_id ",
                     :order => sanitize_sql_for_conditions(["#{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")}", *locales.map(&:to_s)]),
                     :conditions => conditions,
-                    :include => merge_includes(scope(:find, :include), options[:include]),
-                    :joins => joins_sql
+                    :include => options[:include],
+                    :joins => options[:joins]
                 })
               end
             ensure

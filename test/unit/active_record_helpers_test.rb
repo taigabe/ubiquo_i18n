@@ -146,7 +146,26 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [], TestModel.scope_for_test(10).locale('es', :all).all
     assert_equal [model], TestModel.locale('es', :all).scope_for_test(1).all
   end
-  
+
+  def test_search_by_locale_with_custom_sql_joins
+    model = create_model
+    TestModel.class_eval do
+      named_scope :scope_for_test, lambda{|id|
+        {
+          :joins => 'INNER JOIN "related_test_models" ON related_test_models.test_model_id = test_models.id',
+          :conditions => ["related_test_models.field1 = ?", id.to_s]
+        }
+      }
+    end
+    create_related_model(:test_model => model, :field1 => '1')
+    create_related_model(:test_model => model, :field1 => '2')
+
+    assert_equal [model], TestModel.scope_for_test(1).all
+    assert_equal [], TestModel.locale('es', :all).scope_for_test(10).all
+    assert_equal [], TestModel.scope_for_test(10).locale('es', :all).all
+    assert_equal [model], TestModel.locale('es', :all).scope_for_test(1).all
+  end
+
   def test_search_by_locale_with_limit
     20.times do 
       create_model(:locale => 'ca', :field1 => '1')

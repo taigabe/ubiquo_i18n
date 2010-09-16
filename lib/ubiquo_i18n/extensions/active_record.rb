@@ -192,7 +192,8 @@ module UbiquoI18n
                   if record && record.class.is_translatable?
                     all_relationship_contents = []
                     [model_rel].flatten.each do |old_rel|
-                      existing_translation = old_rel.translations.first(:conditions => {:locale => self.locale})
+                      self_with_translations = [old_rel] + old_rel.translations
+                      existing_translation = self_with_translations.select{|tr| tr.locale?(self.locale)}.first
                       unless existing_translation || old_rel.being_translated?
                         translated_rel = old_rel.translate(self.locale, :copy_all => true)
                         all_relationship_contents << translated_rel

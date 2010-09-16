@@ -228,6 +228,26 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal ca_updated_relation, original.reload.test_model
   end
 
+  def test_copy_shared_relations_translatable_belongs_to_case_with_bad_relation
+    original = create_model(:locale => 'ca')
+    original_relation = create_model(:locale => 'en')
+    original.test_model = original_relation
+    original.save
+
+    translated = original.translate('en')
+    translated.save
+
+    assert translated.test_model, 'translated instance relation is empty'
+    assert_equal translated.locale, translated.test_model.locale
+    assert_equal original_relation.in_locale('en'), translated.test_model
+    assert_equal 4, TestModel.count
+    assert_equal(
+      original.id + 2,
+      [translated.test_model.id, translated.id].max,
+      'instances were created and deleted'
+    )
+  end
+
   def test_should_get_translated_has_many_elements_from_a_non_translated_model
     non_translated = RelatedTestModel.create
     

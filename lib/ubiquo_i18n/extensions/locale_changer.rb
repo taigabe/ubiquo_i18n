@@ -10,8 +10,12 @@ module UbiquoI18n
       module InstanceMethods
         # Returns the current locale, and sets it in the session if it wasn't there
         def current_locale
-          @current_locale ||= params[:locale] || session[:locale] || Locale.default
-          Locale.current = session[:locale] = @current_locale
+          if @current_locale.blank?
+            @current_locale ||= params[:locale] || session[:locale] ||ubiquo_config_call(:last_user_locale, {:context => :ubiquo_i18n})  || Locale.default
+            Locale.current = session[:locale] = @current_locale
+            ubiquo_config_call(:set_last_user_locale, {:context => :ubiquo_i18n, :locale => @current_locale})
+          end
+          @current_locale
         end
       end
     end

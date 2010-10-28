@@ -19,7 +19,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     end
 
     # check no changes
-    assert_equal 1, TestModel.count 
+    assert_equal 1, TestModel.count
     assert_equal 1, UnsharedRelatedTestModel.count
     TestModel.reflections[:unshared_related_test_models].instance_variable_set('@options', {})
   end
@@ -47,7 +47,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     rel.save
     assert_equal rel.related_test_model, translated.reload.related_test_model
   end
-  
+
   def test_copy_shared_relations_simple_belongs_update_case
     rel = TranslatableRelatedTestModel.create :locale => 'ca'
     rel.related_test_model = create_related_model
@@ -93,7 +93,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 2, m2.translatable_related_test_models.size # as m1
     assert_equal %w{ca ca}, m2.translatable_related_test_models.map(&:locale)
     assert_equal m1.translatable_related_test_models.first.content_id, m2.translatable_related_test_models.first.content_id
-    assert_equal m1.translatable_related_test_models, m2.translatable_related_test_models 
+    assert_equal m1.translatable_related_test_models, m2.translatable_related_test_models
     assert_equal 2, TranslatableRelatedTestModel.count
     assert_equal 1, TranslatableRelatedTestModel.count(:conditions => {:common => '1'})
     assert_equal 1, TranslatableRelatedTestModel.count(:conditions => {:common => '2'})
@@ -113,7 +113,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 3, TranslatableRelatedTestModel.count # 3 original
     assert_equal 1, TranslatableRelatedTestModel.count(:conditions => {:common => '3'})
   end
-  
+
   def test_should_copy_shared_relations_translatable_chained_creation_case
     a = ChainTestModelA.create(:locale => 'ca', :content_id => 10)
     a.chain_test_model_b = (b = ChainTestModelB.create(:locale => 'ca', :content_id => 20))
@@ -135,7 +135,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     newa.save
     assert_equal a.content_id, newa.chain_test_model_b.chain_test_model_c.chain_test_model_a.content_id
   end
-  
+
   def test_should_copy_shared_relations_translatable_has_one_creation_case
     m1 = OneOneTestModel.create(:locale => 'ca', :common => '2')
     m1.one_one = OneOneTestModel.create(:common => '1', :locale => 'ca')
@@ -150,7 +150,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 1, OneOneTestModel.count(:conditions => {:common => '1'})
     assert_equal 1, OneOneTestModel.count(:conditions => {:common => '2'})
   end
-  
+
   def test_should_copy_shared_relations_translatable_has_one_update_case
     ca = OneOneTestModel.create(:locale => 'ca', :independent => 'ca')
     ca.one_one = OneOneTestModel.create(:independent => 'subca', :locale => 'ca')
@@ -171,11 +171,10 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 'es', es.reload.independent
     assert_equal 'subes', es.one_one.independent
   end
-  
+
   def test_copy_shared_relations_translatable_belongs_to_creation_case
     original = create_model(:locale => 'ca')
-    original_relation = create_model(:locale => 'ca')
-    original.test_model = original_relation
+    original.test_model = original_relation = create_model(:locale => 'ca')
     original.save
 
     translated = original.translate('en')
@@ -204,7 +203,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     updated_relation = create_model(:locale => 'en')
     translated.test_model = updated_relation
     translated.save
-    
+
     assert_not_equal original_relation, original.reload.test_model
     assert_equal updated_relation, original.test_model
     assert_equal 4, TestModel.count
@@ -227,7 +226,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     updated_relation = create_model(:locale => 'en')
     ca_updated_relation = updated_relation.translate('ca')
     ca_updated_relation.save
-    
+
     translated.test_model = updated_relation
     translated.save
 
@@ -235,32 +234,52 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal ca_updated_relation, original.reload.test_model
   end
 
+  def test_has_many_with_common_belongs_to_for_different_translations_and_dependent_destroy_with_explicit_locale
+    TestModel.delete_all
+    ca_parent = create_model(:locale => 'ca')
+    ca_parent.test_models << child_ca = create_model(:locale => 'ca')
+    child_en = child_ca.translate('en')
+    child_en.save
+    ca_parent.test_models << child_en
+    ca_parent.reload
+
+    en_parent = ca_parent.translate('en')
+    Locale.current = 'en'
+    en_parent.save
+    assert_equal 'en', Locale.current, 'Locale.current should maintain its value'
+    Locale.current = nil
+
+    assert_equal [child_en], en_parent.reload.test_models
+    assert_equal [child_ca], ca_parent.reload.test_models
+    assert_equal 4, TestModel.count
+  end
+
   def test_should_get_translated_has_many_elements_from_a_non_translated_model
     non_translated = RelatedTestModel.create
-    
+
     translated_1, translated_2 = [
       TestModel.create(:content_id => 1, :locale => 'en', :related_test_model => non_translated),
       TestModel.create(:content_id => 1, :locale => 'es', :related_test_model => non_translated)
     ]
-    
+
     assert non_translated.valid?
     assert translated_1.valid?
     assert translated_2.valid?
-    
+
     assert_equal [translated_1, translated_2], non_translated.test_models
     assert_equal [translated_1], non_translated.test_models.locale('en')
     assert_equal [translated_2], non_translated.test_models.locale('es')
   end
-  
-  
+
+
   def test_has_many_to_translated_sti
     InheritanceTestModel.destroy_all
-    
+
     test_model = RelatedTestModel.create
     first_inherited = FirstSubclass.create(:field => "Hi", :locale => "en", :related_test_model => test_model)
 
     assert_equal 1, test_model.inheritance_test_models.size
-    
+
     second_inherited = first_inherited.translate
     second_inherited.field = "Hola"
     second_inherited.locale = 'es'
@@ -273,7 +292,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal "Hi", test_model.inheritance_test_models.locale("en", 'es').first.field
     assert_equal "Hola", test_model.inheritance_test_models.locale("es", 'en').first.field
   end
-  
+
   def test_translatable_has_many_to_translated_sti_correctly_updates_the_associations
     origin = TranslatableRelatedTestModel.create(:locale => 'en')
     translated_origin = origin.translate('es')
@@ -282,19 +301,19 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     sti_instance = FirstSubclass.create(:locale => "en", :translatable_related_test_model => origin)
 
     assert_equal 1, origin.reload.inheritance_test_models.size
-    
+
     translated_sti = sti_instance.translate('es', :copy_all => true)
     translated_sti.save
 
     assert_equal 1, origin.reload.inheritance_test_models.size
     assert_equal 1, translated_origin.reload.inheritance_test_models.size
-    
+
     translated_origin.inheritance_test_models = []
     assert_equal [], origin.reload.inheritance_test_models
-    
+
     translated_origin.inheritance_test_models = [translated_sti]
     assert_equal [sti_instance], origin.reload.inheritance_test_models
-    
+
   end
 
   def test_should_not_redo_translations_in_has_many_translate_with_copy_all
@@ -391,6 +410,25 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     en.related_test_model = RelatedTestModel.create
     ca = en.translate('ca')
     assert ca.related_test_model
+  end
+
+  def test_semi_translated_content_in_a_has_many_avoids_repeated
+    en = TestModel.create(:locale => 'en')
+    en.test_model = main = TestModel.create(:locale => 'en')
+    ca = en.translate('ca')
+    ca.save
+    assert_equal ca.test_model, en.test_model
+    assert_equal 1, main.test_models.size
+    assert_equal 'en', main.test_models.first.locale
+  end
+
+  def test_current_locale_should_have_preference_when_loading_relations
+    en = TestModel.create(:locale => 'en')
+    en.test_model = main = TestModel.create(:locale => 'en')
+    ca = en.translate('ca')
+    ca.save
+    Locale.current = 'ca'
+    assert_equal 'ca', main.test_models.first.locale
   end
 
   def test_share_translations_for_translation_shared_has_one

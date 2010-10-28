@@ -160,6 +160,8 @@ module UbiquoI18n
 
           # Looks for defined shared relations and performs a chain-update on them
           define_method('copy_translatable_shared_relations_from') do |model|
+            # here a clean environment is needed, but save Locale.current
+            @current_locale, Locale.current = Locale.current, nil if Locale.current
             self.class.is_translating_relations = true
             begin
               # act on reflections where translatable == false
@@ -203,6 +205,7 @@ module UbiquoI18n
               end
             ensure
               self.class.is_translating_relations = false
+              Locale.current = @current_locale
             end
           end
           
@@ -228,26 +231,32 @@ module UbiquoI18n
                 is_collection = association.respond_to? :count
                 # the target needs to be loaded
                 association.inspect
+                # preferred locale for the associated objects
+                locale = Locale.current || self.locale
 
                 if is_collection && reflection.klass.is_translatable?
-                  translations.each do |translation|
+                  # build the complete proxy_target
+                  target = association.proxy_target
+                  contents = []
+                  with_translations.each do |translation|
                     elements = translation.send("#{association_id}_without_shared_translations")
-                    elements.reject! do |element|
-                      association.proxy_target.map(&:content_id).include? element.content_id
+                    elements.each do |element|
+                      contents << element unless contents.map(&:content_id).include?(element.content_id)
                     end
-                    association.proxy_target.concat(elements)
                   end
+                  target.clear
+                  target.concat(contents)
 
                   # now "localize" the contents
                   translations_to_do = {}
-                  association.proxy_target.each do |element|
+                  target.each do |element|
                     if !element.in_locale?(locale) && (translation = element.in_locale(locale))
                       translations_to_do[element] = translation
                     end
                   end
                   translations_to_do.each_pair do |foreign, translation|
-                    association.proxy_target.delete foreign
-                    association.proxy_target << translation
+                    target.delete foreign
+                    target << translation
                   end
 
                   association.loaded
@@ -619,7 +628,6 @@ module UbiquoI18n
               self.send(:attributes_except_unique_for_translation).each_pair do |attr, value|
                 translation.send("#{attr}=", value)
               end
-#              translation.copy_translatable_shared_relations_from self
               translation.save
             else
               update_without_translatable

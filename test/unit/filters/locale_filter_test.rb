@@ -1,7 +1,7 @@
 require File.dirname(__FILE__) + "/../../test_helper.rb"
-require 'ubiquo_i18n/extensions/filter_helpers/locale_filter'
+require 'ubiquo_i18n/filters/locale_filter'
 
-class LocaleFilterTest < Ubiquo::Extensions::FilterHelpers::UbiquoFilterTestCase
+class LocaleFilterTest < Ubiquo::Filters::UbiquoFilterTestCase
 
   include UbiquoI18n::Extensions::Helpers
 

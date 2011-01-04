@@ -1,44 +1,52 @@
 <% translations = model.translations %>
-<h3><%= t("ubiquo.i18n.translations") %></h3>
-  <% Locale.active.ordered_alphabetically.each do |l| %>
-    <% unless model.in_locale?(l.iso_code, :skip_any => true) %>
-      <% translated = translations.select{|t| t.locale == l.iso_code}.first %>
-      
-      <div class="translation<%= translated && translated.id == params[:preview_id].to_i ? " selected" : ""%>">
-        <span class="name"><%= l.native_name.capitalize %></span>
-        <div class="options">
-          <% if translated %>
-            <%= link_to(
-                  t("ubiquo.edit"), 
-                  url_for(params.merge(
-                      :action => 
-                      :edit, 
-                      :id => translated.id, 
-                      :locale => l.iso_code, 
-                      :preview_id => nil
-                      )
-                    ),
-                  :class => "edit"
-                  ) %>
-            <%= link_to(t("ubiquo.preview"), url_for(params.merge(:preview_id => translated.id)), :class => 'preview') unless options[:hide_preview_link] %>
-          <% else %>
-            <%= link_to(
-                  t("ubiquo.translate"), 
-                  url_for(params.merge(
-                      :action => :new, 
-                      :id => nil, 
-                      :from => model.content_id, 
-                      :locale => l.iso_code
-                      )
-                    ),
-                  :class => 'translate'
-                  ) %>
-          <% end %>
-        </div>
-      </div>
-    <% else %>
-      <div class="translation selected">
-        <span class="name"><%= l.native_name.capitalize %></span>
-      </div>
-    <% end %>
-  <% end %>
+<div class="sidebar_box translate-box">
+	<div class="header">
+  	  <h3><%= t("ubiquo.i18n.translations") %></h3>
+    </div>
+	<div class="content">
+  	  <% Locale.active.ordered_alphabetically.each do |l| %>
+	    <% unless model.in_locale?(l.iso_code, :skip_any => true) %>
+	      <% translated = translations.select{|t| t.locale == l.iso_code}.first %>
+
+	      <div class="translation<%= translated && translated.id == params[:preview_id].to_i ? " selected" : ""%>">
+	        <span class="name"><%= l.native_name.capitalize %></span>
+	        <div class="options">
+	          <% if translated %>
+	            <%= link_to(
+	                  t("ubiquo.edit"), 
+	                  url_for(params.merge(
+	                      :action => 
+	                      :edit, 
+	                      :id => translated.id, 
+	                      :locale => l.iso_code, 
+	                      :preview_id => nil
+	                      )
+	                    ),
+	                  :class => "edit"
+	                  ) %>
+	            <%= link_to(t("ubiquo.preview"), url_for(params.merge(:preview_id => translated.id)), :class => 'preview') unless options[:hide_preview_link] %>
+	          <% else %>
+	            <%= link_to(
+	                  t("ubiquo.translate"), 
+	                  url_for(params.merge(
+	                      :action => :new, 
+	                      :id => nil, 
+	                      :from => model.content_id, 
+	                      :locale => l.iso_code
+	                      )
+	                    ),
+	                  :class => 'translate'
+	                  ) %>
+	          <% end %>
+	        </div>
+	      </div>
+	    <% else %>
+	      <div class="translation selected">
+	        <span class="name"><%= l.native_name.capitalize %></span>
+	      </div>
+	    <% end %>
+	  <% end %>
+    </div>
+</div>
+
+  

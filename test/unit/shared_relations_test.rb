@@ -442,10 +442,15 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
 
   def test_translation_shared_associations_should_have_correct_finder_sql
     en = TestModel.create(:locale => 'en')
-    en.test_models << TestModel.create(:locale => 'en')
+    related1 = TestModel.create(:locale => 'en', :field1 => 'related1')
+    related2 = TestModel.create(:locale => 'en', :field1 => 'related2')
+    en.test_models << related1
+    en.test_models << related2
     ca = en.translate 'ca'
     assert ca.test_models.first(:conditions => {:locale => 'en'})
     assert_nil ca.test_models.first(:conditions => {:locale => 'ca'})
+    assert_equal related1, ca.test_models.first(:conditions => { :locale => 'en', :field1 => 'related1' })
+    assert_equal related2, ca.test_models.first(:conditions => { :locale => 'en', :field1 => 'related2' })
   end
 
   def test_translation_shared_associations_should_warn_in_count_with_args

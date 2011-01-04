@@ -11,7 +11,7 @@ module UbiquoI18n
         if proxy_reflection.options[:translation_shared] && loaded?
           conditions = options[:conditions].split(' AND ')
           conditions.shift # replace finder_sql
-          options[:conditions] = merge_conditions({:id => proxy_target.map(&:id)}, conditions)
+          options[:conditions] = merge_conditions({:id => proxy_target.map(&:id)}, *conditions)
         end
         construct_find_options_without_translation_shared!(options)
       end

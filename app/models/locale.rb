@@ -18,4 +18,8 @@ class Locale < ActiveRecord::Base
   def to_s
     iso_code
   end
+
+  def humanized_name
+    native_name.capitalize
+  end
 end

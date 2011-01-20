@@ -5,7 +5,7 @@
 	      <% translated = translations.select{|t| t.locale == l.iso_code}.first %>
 
 	      <div class="translation<%= translated && translated.id == params[:preview_id].to_i ? " selected" : ""%>">
-	        <span class="name"><%= l.native_name.capitalize %></span>
+	        <span class="name"><%= l.humanized_name %></span>
 	        <div class="options">
 	          <% if translated %>
 	            <%= link_to(
@@ -37,7 +37,7 @@
 	      </div>
 	    <% else %>
 	      <div class="translation selected">
-	        <span class="name"><%= l.native_name.capitalize %></span>
+	        <span class="name"><%= l.humanized_name %></span>
 	      </div>
 	    <% end %>
 	  <% end %>

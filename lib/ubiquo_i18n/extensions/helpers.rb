@@ -43,7 +43,7 @@ module UbiquoI18n
       def options_for_locale_selector
         options_from_collection_for_select(Locale.active.ordered_alphabetically,
                                            :iso_code, 
-                                           :native_name, 
+                                           :humanized_name,
                                            current_locale)
       end
     end

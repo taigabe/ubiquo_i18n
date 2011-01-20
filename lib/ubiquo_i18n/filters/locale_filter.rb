@@ -7,7 +7,7 @@ module UbiquoI18n
           :field       => :filter_locale,
           :collection  => Locale.active,
           :id_field    => :iso_code,
-          :name_field  => :native_name,
+          :name_field  => :humanized_name,
           :caption     => I18n.t('ubiquo.language')
         }
         @options = defaults.merge(options)

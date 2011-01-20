@@ -40,4 +40,10 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
     assert_equal :ca, Locale.current
   end
 
+  def test_humanized_name_capitalizes_native_name
+    locale = create_locale
+    locale.expects(:native_name).returns(mock(:capitalize => 'result'))
+    assert_equal 'result', locale.humanized_name
+  end
+
 end

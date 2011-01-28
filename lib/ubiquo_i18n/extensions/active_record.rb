@@ -124,7 +124,7 @@ module UbiquoI18n
           define_method('with_translations') do
             [self] + translations
           end
-          
+
           # Creates a new instance of the translatable class, using the common
           # values from an instance sharing the same content_id
           # Returns a new independent instance if content_id is nil or not found
@@ -161,51 +161,51 @@ module UbiquoI18n
           # Looks for defined shared relations and performs a chain-update on them
           define_method('copy_translatable_shared_relations_from') do |model|
             # here a clean environment is needed, but save Locale.current
-            @current_locale, Locale.current = Locale.current, nil if Locale.current
-            self.class.is_translating_relations = true
-            begin
-              # act on reflections where translatable == false
-              self.class.reflections.select do |name, reflection|
-                reflection.options[:translation_shared] == true
-              end.each do |association_id, reflection_values|
-                association_values = model.send(association_id)
-                record = [association_values].flatten.first
+            without_current_locale do
+              self.class.is_translating_relations = true
+              begin
+                # act on reflections where translatable == false
+                self.class.reflections.select do |name, reflection|
+                  reflection.options[:translation_shared] == true
+                end.each do |association_id, reflection_values|
+                  association_values = model.send(association_id)
+                  record = [association_values].flatten.first
 
-                if record && record.class.is_translatable?
+                  if record && record.class.is_translatable?
 
-                  all_relationship_contents = []
-                  [association_values].flatten.each do |related_element|
-                    existing_translation = related_element.translations.locale(locale).first
-                    if existing_translation
-                      all_relationship_contents << existing_translation
-                    else
-                      all_relationship_contents << related_element
+                    all_relationship_contents = []
+                    [association_values].flatten.each do |related_element|
+                      existing_translation = related_element.translations.locale(locale).first
+                      if existing_translation
+                        all_relationship_contents << existing_translation
+                      else
+                        all_relationship_contents << related_element
+                      end
                     end
-                  end
 
-                elsif record
+                  elsif record
 
-                  if reflection_values.macro == :belongs_to
-                    # we simply copy the attribute value
-                    all_relationship_contents = [association_values]
+                    if reflection_values.macro == :belongs_to
+                      # we simply copy the attribute value
+                      all_relationship_contents = [association_values]
+                    else
+                      raise "This behaviour is not supported by ubiquo_i18n. Either use a has_many :through to a translatable model or mark the #{record.class} model as translatable"
+                    end
+
                   else
-                    raise "This behaviour is not supported by ubiquo_i18n. Either use a has_many :through to a translatable model or mark the #{record.class} model as translatable"
+                    next
                   end
 
-                else
-                  next
+                  all_relationship_contents = all_relationship_contents.first unless association_values.is_a?(Array)
+                  self.send(association_id.to_s + '=', all_relationship_contents)
+                  if reflection_values.macro == :belongs_to && !new_record?
+                    # belongs_to is not autosaved by rails when the association is not new
+                    save
+                  end
                 end
-
-                all_relationship_contents = all_relationship_contents.first unless association_values.is_a?(Array)
-                self.send(association_id.to_s + '=', all_relationship_contents)
-                if reflection_values.macro == :belongs_to && !new_record?
-                  # belongs_to is not autosaved by rails when the association is not new
-                  save
-                end
+              ensure
+                self.class.is_translating_relations = false
               end
-            ensure
-              self.class.is_translating_relations = false
-              Locale.current = @current_locale
             end
           end
           
@@ -684,6 +684,16 @@ module UbiquoI18n
             yield
           ensure
             @stop_translatable_propagation = false
+          end
+        end
+
+        # Execute a block without being affected by any possible current locale
+        def without_current_locale
+          begin
+            @current_locale, Locale.current = Locale.current, nil if Locale.current
+            yield
+          ensure
+            Locale.current = @current_locale
           end
         end
 

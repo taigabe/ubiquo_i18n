@@ -99,6 +99,17 @@ def create_test_model_backend
     has_many :inheritance_test_models, :translation_shared => true, :dependent => :destroy
     has_many :test_models, :dependent => :destroy, :translation_shared => true
     belongs_to :test_model, :translation_shared => true
+    
+    attr_accessor :abort_on_before_create
+    attr_accessor :abort_on_before_update
+
+    def before_create
+      !self.abort_on_before_create
+    end
+
+    def before_update
+      !self.abort_on_before_update
+    end     
   end
   
   RelatedTestModel.class_eval do

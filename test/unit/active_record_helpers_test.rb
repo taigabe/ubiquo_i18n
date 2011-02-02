@@ -340,16 +340,15 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   def test_should_not_update_translations_if_update_fails
     es_m1 = create_model(:content_id => 1, :locale => 'es', :field2 => 'val')
     ca_m1 = create_model(:content_id => 1, :locale => 'ca', :field2 => 'val')
-    TestModel.any_instance.expects(:valid?).returns(false)
-    es_m1.update_attributes :field2 => 'newval'
+    assert !es_m1.update_attributes(:field2 => 'newval', :abort_on_before_update => true)
     assert_equal 'val', es_m1.reload.field2
     assert_equal 'val', ca_m1.reload.field2
   end
 
   def test_should_not_update_translations_if_creation_fails
     es_m1 = create_model(:content_id => 1, :locale => 'es', :field2 => 'val')
-    TestModel.any_instance.expects(:valid?).returns(false)
-    create_model(:content_id => 1, :locale => 'ca', :field2 => 'newval')
+    ca_m1 = TestModel.new(:content_id => 1, :locale => 'ca', :field2 => 'newval', :abort_on_before_create => true)
+    assert !ca_m1.save
     assert_equal 'val', es_m1.reload.field2
   end
 

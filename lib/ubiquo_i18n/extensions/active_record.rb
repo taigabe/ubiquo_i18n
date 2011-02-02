@@ -499,13 +499,15 @@ module UbiquoI18n
         # - The translatable fields will be updated just for the current instance
         # - Fields not defined as translatable will need to be updated for every instance that shares the same content_id
         def create_with_translatable
-          create_without_translatable
-          update_translations
+          saved = create_without_translatable
+          update_translations if saved
+          saved
         end
 
         def update_with_translatable
-          update_without_translatable
-          update_translations
+          saved = update_without_translatable
+          update_translations if saved
+          saved
         end
         
         def update_translations

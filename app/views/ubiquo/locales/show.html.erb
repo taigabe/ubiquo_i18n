@@ -6,9 +6,9 @@
       render(:partial => "shared/ubiquo/lists/standard", :locals => {
           :name => 'locale',
           :headers => [:native_name, :english_name, :is_active, :is_default],
-          :rows => @locales.collect do |locale| 
+          :rows => @locales.collect do |locale|
             {
-              :id => locale.id, 
+              :id => locale.id,
               :columns => [
                 locale.native_name,
                 locale.english_name,
@@ -21,9 +21,9 @@
           :hide_actions => true,
           :link_to_new => "",
         }) %>
-  <p class="form_buttons">
-    <%= form.submit t('ubiquo.save') %>
-  </p>
+  <div class="form-item-submit">
+    <%= form.submit t('ubiquo.save'), :class => "bt-submit" %>
+  </div>
 <% end %>
 
 <% content_for :sidebar do %>

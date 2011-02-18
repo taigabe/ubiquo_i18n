@@ -241,7 +241,7 @@ module UbiquoI18n
                   with_translations.each do |translation|
                     elements = translation.send("#{association_id}_without_shared_translations")
                     elements.each do |element|
-                      contents << element unless contents.map(&:content_id).include?(element.content_id)
+                      contents << element unless element.content_id && contents.map(&:content_id).include?(element.content_id)
                     end
                   end
                   target.clear

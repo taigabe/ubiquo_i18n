@@ -422,6 +422,12 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 'en', main.test_models.first.locale
   end
 
+  def test_nested_attributes_situation_with_multiple_nil_content_id
+    en = TestModel.create
+    en.test_models_attributes = [{}, {}]
+    assert_equal 2, en.test_models.count
+  end
+
   def test_current_locale_should_have_preference_when_loading_relations
     en = TestModel.create(:locale => 'en')
     en.test_model = main = TestModel.create(:locale => 'en')

@@ -98,6 +98,7 @@ def create_test_model_backend
     
     has_many :inheritance_test_models, :translation_shared => true, :dependent => :destroy
     has_many :test_models, :dependent => :destroy, :translation_shared => true
+    accepts_nested_attributes_for :test_models
     belongs_to :test_model, :translation_shared => true
     
     attr_accessor :abort_on_before_create

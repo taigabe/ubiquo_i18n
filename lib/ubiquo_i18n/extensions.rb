@@ -15,5 +15,7 @@ ActiveRecord::NamedScope::Scope.send(:include, UbiquoI18n::Extensions::NamedScop
 ActiveRecord::Associations::ClassMethods.send(:include, UbiquoI18n::Extensions::Associations)
 Ubiquo::Extensions::UbiquoAreaController.append_include(UbiquoI18n::Extensions::LocaleChanger)
 Ubiquo::Extensions::UbiquoAreaController.append_helper(UbiquoI18n::Extensions::Helpers)
-ActionController::TestCase.send(:include, UbiquoI18n::Extensions::TestCase)
-ActionController::TestCase.setup(:set_session_locale)
+if Rails.env.test?
+  ActionController::TestCase.send(:include, UbiquoI18n::Extensions::TestCase)
+  ActionController::TestCase.setup(:set_session_locale)
+end

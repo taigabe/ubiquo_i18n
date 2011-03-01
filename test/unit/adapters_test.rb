@@ -50,6 +50,11 @@ class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
     Object.const_set 'TestI18nField', Class.new(ActiveRecord::Base)
 
     # create an instance now to see how its fields will be filled
+    if ::ActiveRecord::Base.connection.class.included_modules.include?(Ubiquo::Adapters::Mysql)
+      # "Supporting" DDL transactions for mysql
+      ::ActiveRecord::Base.connection.begin_db_transaction
+      ::ActiveRecord::Base.connection.create_savepoint
+    end
     TestI18nField.create
 
     # now convert the table into i18n

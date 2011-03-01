@@ -2,6 +2,7 @@ module UbiquoI18n
   module Adapters
     # Extends the create_table method to support the :translatable option
     module SchemaStatements
+      extend Ubiquo::Tasks::Database
 
       # Perform the actual linking with create_table
       def self.included(klass)
@@ -30,7 +31,8 @@ module UbiquoI18n
       # Performs the actual job of applying the :translatable option
       def self.apply_translatable_option!(method, adapter, table_name, options = {})
         translatable = options.delete(:translatable)
-        method_name = "#{method}_without_translatable"
+        locale       = options.delete(:locale)
+        method_name  = "#{method}_without_translatable"
 
         # not all methods accept the options hash
         args = [table_name]
@@ -47,6 +49,10 @@ module UbiquoI18n
           yield table
         end
 
+        if translatable && method == :change_table
+          fill_i18n_fields(table_name, adapter, locale)
+        end
+
         # create or remove indexes for these new fields
         indexes = [:locale, :content_id]
         if translatable
@@ -55,13 +61,26 @@ module UbiquoI18n
               adapter.add_index table_name, index
             end
           end
-        elsif translatable == false
+        elsif translatable == false # != nil
           indexes.each do |index|
             if adapter.indexes(table_name).map(&:columns).flatten.include? index.to_s
               adapter.remove_index table_name, index
             end
           end
         end
+      end
+
+      # In an existing table, fills the content_id and locale fields
+      def self.fill_i18n_fields(table, adapter, locale)
+        table_name = adapter.quote_table_name(table)
+
+        # set content_id = id
+        adapter.update("UPDATE #{table_name} SET #{adapter.quote_column_name('content_id')} = #{adapter.quote_column_name('id')}")
+        fix_sequence_consistency(table_name)
+
+        # fill the locale field for existing records
+        locale ||= Locale.default
+        adapter.update("UPDATE #{table_name} SET #{adapter.quote_column_name('locale')} = #{adapter.quote(locale)}")
       end
 
     end

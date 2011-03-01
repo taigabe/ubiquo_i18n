@@ -1,7 +1,7 @@
 require File.dirname(__FILE__) + "/../test_helper.rb"
 
 class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
-  
+
   def test_create_i18n_table
     definition = nil
     ActiveRecord::Base.silence{
@@ -10,7 +10,7 @@ class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
     ActiveRecord::Base.connection.drop_table(:test)
     assert_not_nil definition[:locale]
   end
-  
+
   def test_dont_create_i18n_table
     definition = nil
     ActiveRecord::Base.silence{
@@ -41,7 +41,36 @@ class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
     assert_equal 1, connection.list_sequences("test_$").size
     connection.drop_table(:test)
   end
-  
+
+  def test_change_table_with_translatable_should_fill_i18n_fields
+    connection = ActiveRecord::Base.connection
+
+    # create a test table and model for our purposes
+    connection.create_table(:test_i18n_fields, :force => true) {}
+    Object.const_set 'TestI18nField', Class.new(ActiveRecord::Base)
+
+    # create an instance now to see how its fields will be filled
+    TestI18nField.create
+
+    # now convert the table into i18n
+    connection.change_table(:test_i18n_fields, :translatable => true, :locale => 'jp') {}
+    TestI18nField.reset_column_information
+
+    # assert that the fields have been filled
+    existing = TestI18nField.first
+    assert_equal 'jp', existing.locale
+    assert_equal existing.id, existing.content_id
+
+    # now test the method without a locale option (should use Locale.default)
+    connection.change_table(:test_i18n_fields, :translatable => false) {}
+    connection.change_table(:test_i18n_fields, :translatable => true ) {}
+    assert_equal Locale.default, TestI18nField.first.locale
+
+    # cleanup
+    connection.drop_table(:test_i18n_fields)
+    Object.send :remove_const, 'TestI18nField'
+  end
+
   def test_change_table_with_translatable_false_should_delete_fields
     connection = ActiveRecord::Base.connection
     ActiveRecord::Base.silence{

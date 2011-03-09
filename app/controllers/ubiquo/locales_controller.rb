@@ -1,4 +1,4 @@
-class Ubiquo::LocalesController < UbiquoAreaController
+class Ubiquo::LocalesController < UbiquoController
   
   ubiquo_config_call(:locales_access_control, {:context => :ubiquo_i18n})
   

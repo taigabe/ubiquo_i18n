@@ -52,6 +52,7 @@ def create_test_model_backend
     t.integer :related_test_model_id
     t.string :field
     t.string :common
+    t.integer :lock_version, :default => 0
   end
   ActiveRecord::Base.connection.create_table :chain_test_model_as, :translatable => true do |t|
     t.integer :chain_test_model_b_id

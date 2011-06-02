@@ -33,6 +33,8 @@ module UbiquoI18n
           
           # timestamps are independent per translation unless set
           @translatable_attributes += [:created_at, :updated_at] unless options[:timestamps] == false
+          # when using optimistic locking, lock_version has to be independent per translation
+          @translatable_attributes += [:lock_version]
           
           # try to generate the attribute setter
           self.new.send(:locale=, :generate) rescue nil
@@ -668,7 +670,7 @@ module UbiquoI18n
         
         def untranslatable_attributes
           attrs = {}
-          (untranslatable_attributes_names + [:content_id.to_s] - [:id.to_s]).each do |name|
+          (untranslatable_attributes_names + ['content_id'] - ['id']).each do |name|
             attrs[name] = clone_attribute_value(:read_attribute, name)
           end
           attrs

@@ -41,6 +41,7 @@ def create_test_model_backend
   end
   ActiveRecord::Base.connection.create_table :related_test_models do |t|
     t.integer :test_model_id
+    t.integer :tracked_test_model_id
     t.string :field1
   end
   ActiveRecord::Base.connection.create_table :unshared_related_test_models do |t|
@@ -116,6 +117,7 @@ def create_test_model_backend
   
   RelatedTestModel.class_eval do
     belongs_to :test_model
+    belongs_to :tracked_test_model, :translation_shared => true, :class_name => 'TestModel'
     
     has_many :inheritance_test_models, :translation_shared => true
     has_many :test_models, :translation_shared => false

@@ -9,13 +9,13 @@ module UbiquoI18n
       end
 
       module ClassMethods
-        
+
         # Class method for ActiveRecord that states which attributes are translatable and therefore when updated will be only updated for the current locale.
         #
         # EXAMPLE:
         #
         #   translatable :title, :description
-        # 
+        #
         # possible options:
         #   :timestamps => set to false to avoid translatable (i.e. independent per translation) timestamps
 
@@ -30,12 +30,12 @@ module UbiquoI18n
           options = attrs.extract_options!
           # add attrs from this class
           @translatable_attributes += attrs
-          
+
           # timestamps are independent per translation unless set
           @translatable_attributes += [:created_at, :updated_at] unless options[:timestamps] == false
           # when using optimistic locking, lock_version has to be independent per translation
           @translatable_attributes += [:lock_version]
-          
+
           # try to generate the attribute setter
           self.new.send(:locale=, :generate) rescue nil
           if instance_methods.include?('locale=') && !instance_methods.include?('locale_with_duality=')
@@ -53,13 +53,13 @@ module UbiquoI18n
             alias_method_chain :locale=, :duality
 
           end
-          
+
           unless instance_methods.include?("in_locale")
             define_method('in_locale') do |*locales|
               self.class.locale(*locales).first(:conditions => {:content_id => self.content_id})
             end
           end
-          
+
           # Checks if the instance has a locale in the given a locales list
           # The last parameter can be an options hash
           #   :skip_any => if true, ignore items with the :any locale.
@@ -88,7 +88,7 @@ module UbiquoI18n
 
             {:locale_scoped => true, :locale_list => locales}
           }
-                    
+
           # usage:
           # find all items of one content: Model.content(1).first
           # find all items of some contents: Model.content(1,2,3)
@@ -210,17 +210,15 @@ module UbiquoI18n
               end
             end
           end
-          
-          define_method 'destroy_content' do 
+
+          define_method 'destroy_content' do
             self.translations.each(&:destroy)
             self.destroy
           end
-          
+
         end
 
         def share_translations_for(*associations)
-          return unless self.is_translatable?
-
           associations.each do |association_id|
 
             reflection = reflections[association_id]
@@ -230,17 +228,24 @@ module UbiquoI18n
               define_method "#{association_id}_with_shared_translations" do
 
                 association = self.send("#{association_id}_without_shared_translations")
+
+                # do nothing if we don't have a current locale and we aren't in a translatable instance
+                return association if !Locale.current && !self.class.is_translatable?
+
+                # preferred locale for the associated objects
+                locale = Locale.current || self.locale
+
                 is_collection = association.respond_to? :count
                 # the target needs to be loaded
                 association.inspect
-                # preferred locale for the associated objects
-                locale = Locale.current || self.locale
 
                 if is_collection && reflection.klass.is_translatable?
                   # build the complete proxy_target
                   target = association.proxy_target
                   contents = []
-                  with_translations.each do |translation|
+                  # if this instance is not from a translatable class, it won't have the with_translations method
+                  origin = self.class.is_translatable? ? self.with_translations : self
+                  Array(origin).each do |translation|
                     elements = translation.send("#{association_id}_without_shared_translations")
                     elements.each do |element|
                       contents << element unless element.content_id && contents.map(&:content_id).include?(element.content_id)
@@ -320,7 +325,7 @@ module UbiquoI18n
         end
 
         # Returns the value for the var_name instance variable, or if this is nil,
-        # follow the superclass chain to ask the value        
+        # follow the superclass chain to ask the value
         def instance_variable_inherited_get(var_name, method_name = nil)
           method_name ||= var_name
           value = instance_variable_get("@#{var_name}")
@@ -332,7 +337,7 @@ module UbiquoI18n
         end
 
         # Sets the value for the var_name instance variable, or if this is nil,
-        # follow the superclass chain to set the value        
+        # follow the superclass chain to set the value
         def instance_variable_inherited_set(value, var_name, method_name = nil)
           method_name ||= var_name
           if !@really_translatable_class
@@ -346,22 +351,22 @@ module UbiquoI18n
         def is_translatable?
           instance_variable_inherited_get("translatable", "is_translatable?")
         end
-        
+
         # Returns a list of translatable attributes for this class
         def translatable_attributes
           instance_variable_inherited_get("translatable_attributes")
         end
-        
+
         # Returns the class that really calls the translatable method
         def really_translatable_class
           instance_variable_inherited_get("really_translatable_class")
         end
-        
+
         # Returns true if this class is currently translating relations
         def is_translating_relations
           instance_variable_inherited_get("is_translating_relations")
         end
-        
+
         # Sets the value of the is_translating_relations flag
         def is_translating_relations=(value)
           instance_variable_inherited_set(value, "is_translating_relations", "is_translating_relations=")
@@ -383,7 +388,7 @@ module UbiquoI18n
         def stop_translatable_propagation
           instance_variable_inherited_get("stop_translatable_propagation")
         end
-        
+
         # Setter for the stop_translatable_propagation_flag
         def stop_translatable_propagation=(value)
           instance_variable_inherited_set(value, "stop_translatable_propagation", "stop_translatable_propagation=")
@@ -415,7 +420,7 @@ module UbiquoI18n
           associations -=  reset_association
           instance_variable_inherited_set(associations, "initialized_translation_shared_list", "reset_translation_shared")
         end
-        
+
         # Applies the locale filter if needed, then performs the normal find method
         def find_with_locale_filter(*args)
           if self.is_translatable?
@@ -426,7 +431,7 @@ module UbiquoI18n
             find_without_locale_filter(*args)
           end
         end
-        
+
         # Applies the locale filter if needed, then performs the normal count method
         def count_with_locale_filter(*args)
           if self.is_translatable?
@@ -437,20 +442,20 @@ module UbiquoI18n
             count_without_locale_filter(*args)
           end
         end
-        
+
 
         # Attributes that are always 'translated' (not copied between languages)
         (@global_translatable_attributes ||= []) << :locale << :content_id
 
-        # Used by third parties to add fields that should always 
-        # be independent between different languages 
+        # Used by third parties to add fields that should always
+        # be independent between different languages
         def add_translatable_attributes(*args)
           @global_translatable_attributes += args
         end
-        
+
         # Define scopes to limit the automatic update of common fields to instances
         # that have the same value for each scope (as a field name)
-        @translatable_scopes ||= [] 
+        @translatable_scopes ||= []
 
         # Used by third parties to add scopes for translations updates of common fields
         # It accepts two formats for condition:
@@ -460,7 +465,7 @@ module UbiquoI18n
         def add_translatable_scope(condition)
           @translatable_scopes << condition
         end
-        
+
         @@translatable_inheritable_instance_variables = %w{global_translatable_attributes translatable_scopes}
 
         ASSOCIATION_TYPES = %w{ has_one belongs_to has_many has_and_belongs_to_many }
@@ -472,7 +477,7 @@ module UbiquoI18n
               klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
             end
           end
-          
+
           # Aliases the find and count methods to apply the locale filter
           klass.class_eval do
             class << self
@@ -481,24 +486,24 @@ module UbiquoI18n
               VALID_FIND_OPTIONS << :locale_scoped << :locale_list
             end
           end
-          
+
           # Accept the :translation_shared option when defining associations
           ASSOCIATION_TYPES.each do |type|
             klass.send("valid_keys_for_#{type}_association") << :translation_shared
           end
         end
-        
+
         def inherited(klass)
           super
           @@translatable_inheritable_instance_variables.each do |inheritable|
-            unless eval("@#{inheritable}").nil?            
+            unless eval("@#{inheritable}").nil?
               klass.instance_variable_set("@#{inheritable}", eval("@#{inheritable}").dup)
             end
           end
         end
 
-        private 
-        
+        private
+
         # This method is the one that actually applies the locale filter
         # This means that if you use .locale(..), you'll end up here,
         # when the results are actually delivered (not in call time)
@@ -526,20 +531,20 @@ module UbiquoI18n
                 return
               end
             end
-            # locale preference order 
+            # locale preference order
             locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
-            
+
             # find the final IDs
             ids = nil
-            
-            # redefine after_find callback method avoiding its call with next find           
+
+            # redefine after_find callback method avoiding its call with next find
             self.class_eval do
               def after_find_with_neutralize; end
-              def after_initialize_with_neutralize; end              
+              def after_initialize_with_neutralize; end
               alias_method_chain :after_find, :neutralize if self.instance_methods.include?("after_find")
               alias_method_chain :after_initialize, :neutralize if self.instance_methods.include?("after_initialize")
             end
-          
+
             begin
               # record possible scoped conditions
               previous_conditions = scope(:find, :conditions)
@@ -561,7 +566,7 @@ module UbiquoI18n
               #restore after_find callback method
               self.class_eval do
                 alias_method :after_find, :after_find_without_neutralize if self.instance_methods.include?("after_find")
-                alias_method :after_initialize, :after_initialize_without_neutralize if self.instance_methods.include?("after_initialize")              
+                alias_method :after_initialize, :after_initialize_without_neutralize if self.instance_methods.include?("after_initialize")
               end
             end
 
@@ -572,11 +577,11 @@ module UbiquoI18n
             options[:conditions] = merge_conditions(options[:conditions], {:id => ids})
           end
         end
-        
+
         def merge_locale_list locales
           merge_locale_list_rec locales.first, locales[1,locales.size]
         end
-        
+
         def merge_locale_list_rec previous, rest
           new = rest.first
           return previous.clone unless new
@@ -590,20 +595,20 @@ module UbiquoI18n
         end
 
       end
-      
+
       module InstanceMethods
-        
+
         def self.included(klass)
           klass.alias_method_chain :update, :translatable
           klass.alias_method_chain :create, :translatable
           klass.alias_method_chain :create, :i18n_fields
-          
+
         end
-        
+
         # proxy to add a new content_id if empty on creation
         def create_with_i18n_fields
           if self.class.is_translatable?
-            # we do this even if there is not currently any tr. attribute, 
+            # we do this even if there is not currently any tr. attribute,
             # as long as is a translatable model
             unless self.content_id
               self.content_id = self.class.connection.next_val_sequence("#{self.class.table_name}_$_content_id")
@@ -614,7 +619,7 @@ module UbiquoI18n
           end
           create_without_i18n_fields
         end
-        
+
         # Whenever we update existing content or create a translation, the expected behaviour is the following
         # - The translatable fields will be updated just for the current instance
         # - Fields not defined as translatable will need to be updated for every instance that shares the same content_id
@@ -641,13 +646,13 @@ module UbiquoI18n
             update_without_translatable
           end
         end
-        
+
         def update_translations
           if self.class.is_translatable? && !@stop_translatable_propagation
             # Update the translations
             self.translations.each do |translation|
               translation.instance_variable_set('@stop_translatable_propagation', true)
-              begin 
+              begin
                 translation.update_attributes untranslatable_attributes
                 translation.copy_translatable_shared_relations_from self
               ensure
@@ -656,18 +661,18 @@ module UbiquoI18n
             end
           end
         end
-        
+
         def untranslatable_attributes_names
-          translatable_attributes = (self.class.translatable_attributes || []) + 
+          translatable_attributes = (self.class.translatable_attributes || []) +
             (self.class.instance_variable_get('@global_translatable_attributes') || []) +
             (self.class.reflections.select do |name, ref|
-                ref.macro != :belongs_to || 
+                ref.macro != :belongs_to ||
                 !ref.options[:translation_shared] ||
                 ((model = [send(name)].first) && model.class.is_translatable?)
             end.map{|name, ref| ref.primary_key_name})
           attribute_names - translatable_attributes.map{|attr| attr.to_s}
         end
-        
+
         def untranslatable_attributes
           attrs = {}
           (untranslatable_attributes_names + ['content_id'] - ['id']).each do |name|
@@ -675,12 +680,12 @@ module UbiquoI18n
           end
           attrs
         end
-        
-        
+
+
         def attributes_except_unique_for_translation
           attributes.reject{|attr, value| [:id, :locale].include?(attr.to_sym)}
         end
-        
+
         # Used to execute a block disabling automatic translation update for this instance
         def without_updating_translations
           @stop_translatable_propagation = true

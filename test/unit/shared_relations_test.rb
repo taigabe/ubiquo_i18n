@@ -271,6 +271,33 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal [translated_2], non_translated.test_models.locale('es')
   end
 
+  def test_should_get_translated_has_many_elements_from_a_non_translated_model_using_default_locale
+    non_translated = RelatedTestModel.create
+
+    translated_1, translated_2 = [
+      InheritanceTestModel.create(:content_id => 1, :locale => 'en', :related_test_model => non_translated),
+      InheritanceTestModel.create(:content_id => 1, :locale => 'es', :related_test_model => non_translated)
+    ]
+
+    Locale.current = 'en'
+    assert_equal [translated_1], non_translated.inheritance_test_models
+    Locale.current = 'es'
+    assert_equal [translated_2], non_translated.inheritance_test_models
+  end
+
+  def test_should_get_translated_belongs_to_from_a_non_translated_model_using_default_locale
+    translated_en = TestModel.create(:locale => 'en')
+    translated_ca = translated_en.translate('ca')
+    translated_ca.save
+    non_translated = RelatedTestModel.create(:tracked_test_model_id => translated_en.id)
+
+    Locale.current = 'en'
+    assert_equal translated_en, non_translated.tracked_test_model
+    Locale.current = 'ca'
+    assert_equal translated_ca, non_translated.tracked_test_model
+    Locale.current = 'es'
+    assert [translated_ca, translated_en].include?(non_translated.tracked_test_model)
+  end
 
   def test_has_many_to_translated_sti
     InheritanceTestModel.destroy_all

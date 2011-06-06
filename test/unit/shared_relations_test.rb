@@ -36,7 +36,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 1, RelatedTestModel.count
     assert_equal 1, TranslatableRelatedTestModel.count
   end
-  
+
   def test_copy_shared_relations_simple_belongs_to_case_using_id
     rel = TranslatableRelatedTestModel.create :locale => 'ca'
 
@@ -344,13 +344,10 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
   end
 
   def test_translatable_belongs_to_correctly_updates_translations_when_nullified_by_attribute_assignation
-    origin = TestModel.create(:locale => 'en')
-    parent = origin.test_model = TestModel.create(:locale => 'en')
-    origin.save
-    translated_origin = origin.translate('es')
-    translated_origin.save
+    origin, translated_origin = create_test_model_with_relation_and_translation
 
-    assert_equal parent, translated_origin.test_model
+    assert_equal origin.test_model, translated_origin.test_model
+    assert_kind_of TestModel, origin.test_model
 
     origin.test_model_id = nil
     origin.save
@@ -360,12 +357,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
   end
 
   def test_translatable_belongs_to_correctly_updates_translations_when_nullified_by_association
-    origin = TestModel.create(:locale => 'en')
-    parent = origin.test_model = TestModel.create(:locale => 'en')
-    translated_origin = origin.translate('es')
-    translated_origin.save
-
-    assert_equal parent, translated_origin.test_model
+    origin, translated_origin = create_test_model_with_relation_and_translation
 
     origin.test_model = nil
     origin.save
@@ -375,13 +367,8 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
   end
 
   def test_translatable_belongs_to_correctly_updates_translations_when_nullified_by_attribute_update
-    origin = TestModel.create(:locale => 'en')
-    parent = origin.test_model = TestModel.create(:locale => 'en')
-    origin.save
-    translated_origin = origin.translate('es')
-    translated_origin.save
-
-    assert_equal parent, translated_origin.test_model
+    origin, translated_origin = create_test_model_with_relation_and_translation
+    parent = TestModel.find(origin.test_model.id)
 
     origin.update_attribute :test_model_id, nil
     assert_nil origin.reload.test_model
@@ -392,6 +379,15 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal parent, origin.test_model
     origin.update_attributes :test_model_id => nil
     assert_nil origin.test_model
+    assert_nil translated_origin.reload.test_model
+  end
+
+  def test_translatable_belongs_to_correctly_updates_translations_when_nullified_when_fresh
+    origin, translated_origin = create_test_model_with_relation_and_translation
+    assert_not_nil origin.test_model
+
+    origin.reload.update_attribute :test_model_id, nil
+    assert_nil origin.reload.test_model
     assert_nil translated_origin.reload.test_model
   end
 
@@ -545,6 +541,17 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_raise NotImplementedError do
       ca.test_models.count(:conditions => {:locale => 'en'})
     end
+  end
+
+  private
+
+  def create_test_model_with_relation_and_translation
+    origin = TestModel.create(:locale => 'en')
+    origin.test_model = TestModel.create(:locale => 'en')
+    origin.save
+    translated_origin = origin.translate('es')
+    translated_origin.save
+    [origin, translated_origin]
   end
 
 end

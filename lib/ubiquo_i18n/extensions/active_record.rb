@@ -222,7 +222,8 @@ module UbiquoI18n
                 reflection.macro == :belongs_to && reflection.options[:translation_shared]
             end.each do |name, reflection|
               if has_updated_existing_primary_key(reflection)
-                self.send("#{name}_without_shared_translations").reload
+                association = self.send("#{name}_without_shared_translations")
+                association.reload if association
               end
             end
           end

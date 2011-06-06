@@ -9,7 +9,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
   end
 
   def test_copy_shared_relations_simple_has_many_case
-    TestModel.reflections[:unshared_related_test_models].instance_variable_set('@options',{:translation_shared => true})
+    TestModel.share_translations_for :unshared_related_test_models
     test_model = create_model(:locale => 'ca')
     test_model.unshared_related_test_models << UnsharedRelatedTestModel.create
 
@@ -36,7 +36,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 1, RelatedTestModel.count
     assert_equal 1, TranslatableRelatedTestModel.count
   end
-
+  
   def test_copy_shared_relations_simple_belongs_to_case_using_id
     rel = TranslatableRelatedTestModel.create :locale => 'ca'
 
@@ -341,6 +341,58 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     translated_origin.inheritance_test_models = [translated_sti]
     assert_equal [sti_instance], origin.reload.inheritance_test_models
 
+  end
+
+  def test_translatable_belongs_to_correctly_updates_translations_when_nullified_by_attribute_assignation
+    origin = TestModel.create(:locale => 'en')
+    parent = origin.test_model = TestModel.create(:locale => 'en')
+    origin.save
+    translated_origin = origin.translate('es')
+    translated_origin.save
+
+    assert_equal parent, translated_origin.test_model
+
+    origin.test_model_id = nil
+    origin.save
+    assert_nil origin.test_model_id
+    assert_nil origin.reload.test_model
+    assert_nil translated_origin.reload.test_model
+  end
+
+  def test_translatable_belongs_to_correctly_updates_translations_when_nullified_by_association
+    origin = TestModel.create(:locale => 'en')
+    parent = origin.test_model = TestModel.create(:locale => 'en')
+    translated_origin = origin.translate('es')
+    translated_origin.save
+
+    assert_equal parent, translated_origin.test_model
+
+    origin.test_model = nil
+    origin.save
+    assert_nil origin.test_model
+    assert_nil origin.test_model_id
+    assert_nil translated_origin.reload.test_model
+  end
+
+  def test_translatable_belongs_to_correctly_updates_translations_when_nullified_by_attribute_update
+    origin = TestModel.create(:locale => 'en')
+    parent = origin.test_model = TestModel.create(:locale => 'en')
+    origin.save
+    translated_origin = origin.translate('es')
+    translated_origin.save
+
+    assert_equal parent, translated_origin.test_model
+
+    origin.update_attribute :test_model_id, nil
+    assert_nil origin.reload.test_model
+    assert_nil translated_origin.reload.test_model
+
+    # now revert and try update_attributes, which is slightly different...
+    origin.update_attribute :test_model_id, parent.id
+    assert_equal parent, origin.test_model
+    origin.update_attributes :test_model_id => nil
+    assert_nil origin.test_model
+    assert_nil translated_origin.reload.test_model
   end
 
   def test_should_not_redo_translations_in_has_many_translate_with_copy_all

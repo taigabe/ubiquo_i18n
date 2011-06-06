@@ -1,16 +1,9 @@
-module UbiquoI18n
-  module Extensions
-    autoload :ActiveRecord, 'ubiquo_i18n/extensions/active_record'
-    autoload :AssociationProxy, 'ubiquo_i18n/extensions/association_collection'
-    autoload :NamedScope, 'ubiquo_i18n/extensions/named_scope'
-    autoload :Reflection, 'ubiquo_i18n/extensions/reflection'
-    autoload :LocaleChanger, 'ubiquo_i18n/extensions/locale_changer'
-    autoload :Helpers, 'ubiquo_i18n/extensions/helpers'
-  end
-end
+module UbiquoI18n::Extensions; end
 
 ActiveRecord::Base.send(:include, UbiquoI18n::Extensions::ActiveRecord)
 ActiveRecord::Associations::AssociationCollection.send(:include, UbiquoI18n::Extensions::AssociationCollection)
+ActiveRecord::Associations::BelongsToAssociation.send(:include, UbiquoI18n::Extensions::BelongsToAssociation)
+ActiveRecord::Associations::BelongsToPolymorphicAssociation.send(:include, UbiquoI18n::Extensions::BelongsToAssociation)
 ActiveRecord::NamedScope::Scope.send(:include, UbiquoI18n::Extensions::NamedScope)
 ActiveRecord::Associations::ClassMethods.send(:include, UbiquoI18n::Extensions::Associations)
 Ubiquo::Extensions::Loader.append_include(:UbiquoController, UbiquoI18n::Extensions::LocaleChanger)

@@ -170,7 +170,7 @@ module UbiquoI18n
                 self.class.reflections.select do |name, reflection|
                   reflection.options[:translation_shared] == true
                 end.each do |association_id, reflection_values|
-                  association_values = model.send(association_id)
+                  association_values = model.send("#{association_id}_without_shared_translations")
                   record = [association_values].flatten.first
 
                   if record && record.class.is_translatable?
@@ -194,6 +194,9 @@ module UbiquoI18n
                       raise "This behaviour is not supported by ubiquo_i18n. Either use a has_many :through to a translatable model or mark the #{record.class} model as translatable"
                     end
 
+                  elsif reflection_values.macro == :belongs_to
+                     # no record means that we are removing an association, so the new content is nil
+                    all_relationship_contents = [nil]
                   else
                     next
                   end
@@ -209,6 +212,24 @@ module UbiquoI18n
                 self.class.is_translating_relations = false
               end
             end
+          end
+
+          # Do any necessary treatment when we are about to propagate changes from an instance to its translations
+          define_method 'prepare_for_shared_translations' do
+            # Rails doesn't reload the belongs_to associations when the _id field is changed,
+            # which causes cached data to persist when it's already obsolete
+            self.class.reflections.select do |name, reflection|
+                reflection.macro == :belongs_to && reflection.options[:translation_shared]
+            end.each do |name, reflection|
+              if has_updated_existing_primary_key(reflection)
+                self.send("#{name}_without_shared_translations").reload
+              end
+            end
+          end
+
+          # Returns true if the primary_key for +reflection+ has been changed, and it was not nil before
+          define_method 'has_updated_existing_primary_key' do |reflection|
+            send("#{reflection.primary_key_name}_changed?") && send("#{reflection.primary_key_name}_was")
           end
 
           define_method 'destroy_content' do
@@ -649,6 +670,8 @@ module UbiquoI18n
 
         def update_translations
           if self.class.is_translatable? && !@stop_translatable_propagation
+            # prepare "self" to be the relations model for its translations
+            self.prepare_for_shared_translations
             # Update the translations
             self.translations.each do |translation|
               translation.instance_variable_set('@stop_translatable_propagation', true)

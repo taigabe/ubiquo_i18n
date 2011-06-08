@@ -409,9 +409,11 @@ module UbiquoI18n
                 return
               end
             end
-            # locale preference order 
-            locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
-            
+            # locale preference order
+            tbl = self.table_name
+            locales_string = locales.size > 0 ? (["#{tbl}.locale != ?"]*(locales.size)).join(", ") : nil
+            locale_order = ["#{tbl}.content_id", locales_string].compact.join(", ")
+
             # find the final IDs
             ids = nil
             
@@ -422,37 +424,86 @@ module UbiquoI18n
               alias_method_chain :after_find, :neutralize if self.instance_methods.include?("after_find")
               alias_method_chain :after_initialize, :neutralize if self.instance_methods.include?("after_initialize")
             end
-          
-            begin
-              # record possible scoped conditions
-              previous_conditions = scope(:find, :conditions)
 
-              # removes paginator scope.
-              with_exclusive_scope(:find => {:limit => nil, :offset => nil, :joins => scope(:find, :joins), :include => scope(:find, :include)}) do
-                conditions = merge_conditions(locale_conditions, options[:conditions])
-                conditions = merge_conditions(conditions, previous_conditions)
+            adapters_with_custom_sql = %w{PostgreSQL MySQL}
+            current_adapter = ::ActiveRecord::Base.connection.adapter_name
+            if adapters_with_custom_sql.include?(current_adapter)
 
-                ids = find(:all, {
-                    :select => "#{self.table_name}.id, #{self.table_name}.content_id ",
-                    :order => sanitize_sql_for_conditions(["#{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")}", *locales.map(&:to_s)]),
-                    :conditions => conditions,
-                    :include => options[:include],
-                    :joins => options[:joins]
-                })
+              # Certain adapters support custom features that allow the locale
+              # filter to do its job in a single sql. We use them for efficiency
+              # In these cases, the subquery that will be build must respect
+              # includes, joins and conditions from the original query
+
+              current_includes = merge_includes(scope(:find, :include), options[:include])
+              dependency_class = ::ActiveRecord::Associations::ClassMethods::JoinDependency
+              join_dependency = dependency_class.new(self, current_includes, options[:joins])
+              joins_sql = join_dependency.join_associations.collect{|join| join.association_join }.join
+              # at this point, joins_sql in fact only includes the joins coming from options[:include]
+              add_joins!(joins_sql, options[:joins])
+              add_conditions!(conditions_sql = '', merge_conditions(locale_conditions, options[:conditions]), scope(:find))
+
+              # now construct the subquery
+              locale_filter = case current_adapter
+              when "PostgreSQL"
+                # use a subquery with DISTINCT ON, more efficient, but currently
+                # only supported by Postgres
+
+                ["#{tbl}.id in (" +
+                    "SELECT distinct on (#{tbl}.content_id) #{tbl}.id " +
+                    "FROM #{tbl} " + joins_sql.to_s + conditions_sql.to_s +
+                    "ORDER BY #{locale_order})", *locales.map(&:to_s)
+                ]
+
+              when "MySQL"
+                # it's a "within-group aggregates" problem. We need to order before grouping.
+                # This subquery is O(N * log N), while a correlated subquery would be O(N^2)
+
+                ["#{tbl}.id in (" +
+                    "SELECT id FROM ( SELECT #{tbl}.id, #{tbl}.content_id " +
+                    "FROM #{tbl} " + joins_sql.to_s + conditions_sql.to_s +
+                    "ORDER BY #{locale_order}) AS lpref " +
+                    "GROUP BY content_id)", *locales.map(&:to_s)
+                ]
               end
-            ensure
-              #restore after_find callback method
-              self.class_eval do
-                alias_method :after_find, :after_find_without_neutralize if self.instance_methods.include?("after_find")
-                alias_method :after_initialize, :after_initialize_without_neutralize if self.instance_methods.include?("after_initialize")              
+
+              # finally, merge the created subquery into the current conditions
+              options[:conditions] = merge_conditions(options[:conditions], locale_filter)
+
+            else
+              # For the other adapters, the strategy is to do two subqueries.
+              # This can be problematic for generic queries since we have to
+              # suppress the paginator scope to guarantee the correctness (#254)
+              begin
+                # record possible scoped conditions
+                previous_conditions = scope(:find, :conditions)
+
+                # removes paginator scope.
+                with_exclusive_scope(:find => {:limit => nil, :offset => nil, :joins => scope(:find, :joins), :include => scope(:find, :include)}) do
+                  conditions = merge_conditions(locale_conditions, options[:conditions])
+                  conditions = merge_conditions(conditions, previous_conditions)
+
+                  ids = find(:all, {
+                      :select => "#{tbl}.id, #{tbl}.content_id ",
+                      :order => sanitize_sql_for_conditions(["#{locale_order}", *locales.map(&:to_s)]),
+                      :conditions => conditions,
+                      :include => options[:include],
+                      :joins => options[:joins]
+                  })
+                end
+              ensure
+                #restore after_find callback method
+                self.class_eval do
+                  alias_method :after_find, :after_find_without_neutralize if self.instance_methods.include?("after_find")
+                  alias_method :after_initialize, :after_initialize_without_neutralize if self.instance_methods.include?("after_initialize")
+                end
               end
+
+              #get only one ID per content_id
+              content_ids = {}
+              ids = ids.select{ |id| content_ids[id.content_id].nil? ? content_ids[id.content_id] = id : false }.map{|id| id.id.to_i}
+
+              options[:conditions] = merge_conditions(options[:conditions], {:id => ids})
             end
-
-            #get only one ID per content_id
-            content_ids = {}
-            ids = ids.select{ |id| content_ids[id.content_id].nil? ? content_ids[id.content_id] = id : false }.map{|id| id.id.to_i}
-
-            options[:conditions] = merge_conditions(options[:conditions], {:id => ids})
           end
         end
         

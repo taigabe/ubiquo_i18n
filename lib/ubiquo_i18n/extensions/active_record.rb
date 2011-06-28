@@ -622,7 +622,7 @@ module UbiquoI18n
                 previous_conditions = scope(:find, :conditions)
 
                 # removes paginator scope.
-                with_exclusive_scope(:find => {:limit => nil, :offset => nil, :joins => scope(:find, :joins)}) do
+                with_exclusive_scope(:find => {:limit => nil, :offset => nil, :joins => scope(:find, :joins), :include => scope(:find, :include)}) do
                   conditions = merge_conditions(locale_conditions, options[:conditions])
                   conditions = merge_conditions(conditions, previous_conditions)
 

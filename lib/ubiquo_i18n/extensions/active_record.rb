@@ -554,7 +554,9 @@ module UbiquoI18n
               end
             end
             # locale preference order
-            locales_string = locales.size > 0 ? (["#{self.table_name}.locale != ?"]*(locales.size)).join(", ") : nil
+            tbl = self.table_name
+            locales_string = locales.size > 0 ? (["#{tbl}.locale != ?"]*(locales.size)).join(", ") : nil
+            locale_order = ["#{tbl}.content_id", locales_string].compact.join(", ")
 
             # find the final IDs
             ids = nil
@@ -567,23 +569,48 @@ module UbiquoI18n
               alias_method_chain :after_initialize, :neutralize if self.instance_methods.include?("after_initialize")
             end
 
-            if ::ActiveRecord::Base.connection.adapter_name == "PostgreSQL"
-              # use a subquery with DISTINCT ON, more efficient, but currently
-              # only supported by Postgres
+            adapters_with_custom_sql = %w{PostgreSQL MySQL}
+            current_adapter = ::ActiveRecord::Base.connection.adapter_name
+            if adapters_with_custom_sql.include?(current_adapter)
 
-              # the subquery must respect includes, joins and conditions from the original query
+              # Certain adapters support custom features that allow the locale
+              # filter to do its job in a single sql. We use them for efficiency
+              # In these cases, the subquery that will be build must respect
+              # includes, joins and conditions from the original query
+
               current_includes = merge_includes(scope(:find, :include), options[:include])
               dependency_class = ::ActiveRecord::Associations::ClassMethods::JoinDependency
               join_dependency = dependency_class.new(self, current_includes, options[:joins])
               joins_sql = join_dependency.join_associations.collect{|join| join.association_join }.join
-              conditions_sql = add_conditions!('', merge_conditions(locale_conditions, options[:conditions]), scope(:find))
+              # at this point, joins_sql in fact only includes the joins coming from options[:include]
+              add_joins!(joins_sql, options[:joins])
+              add_conditions!(conditions_sql = '', merge_conditions(locale_conditions, options[:conditions]), scope(:find))
 
-              # construct and merge the subquery into the current conditions
-              locale_filter = ["#{self.table_name}.id in (" +
-                  "SELECT distinct on (#{self.table_name}.content_id) #{self.table_name}.id " +
-                  "FROM #{self.table_name} " + joins_sql.to_s + conditions_sql.to_s +
-                  "ORDER BY #{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")})", *locales.map(&:to_s)]
+              # now construct the subquery
+              locale_filter = case current_adapter
+              when "PostgreSQL"
+                # use a subquery with DISTINCT ON, more efficient, but currently
+                # only supported by Postgres
 
+                ["#{tbl}.id in (" +
+                    "SELECT distinct on (#{tbl}.content_id) #{tbl}.id " +
+                    "FROM #{tbl} " + joins_sql.to_s + conditions_sql.to_s +
+                    "ORDER BY #{locale_order})", *locales.map(&:to_s)
+                ]
+
+              when "MySQL"
+                # it's a "within-group aggregates" problem. We need to order before grouping.
+                # This subquery is O(N * log N), while a correlated subquery would be O(N^2)
+
+                ["#{tbl}.id in (" +
+                    "SELECT id FROM ( SELECT #{tbl}.id, #{tbl}.content_id " +
+                    "FROM #{tbl} " + joins_sql.to_s + conditions_sql.to_s +
+                    "ORDER BY #{locale_order}) AS lpref " +
+                    "GROUP BY content_id)", *locales.map(&:to_s)
+                ]
+              end
+
+              # finally, merge the created subquery into the current conditions
               options[:conditions] = merge_conditions(options[:conditions], locale_filter)
 
             else
@@ -600,8 +627,8 @@ module UbiquoI18n
                   conditions = merge_conditions(conditions, previous_conditions)
 
                   ids = find(:all, {
-                      :select => "#{self.table_name}.id, #{self.table_name}.content_id ",
-                      :order => sanitize_sql_for_conditions(["#{ ["#{self.table_name}.content_id", locales_string].compact.join(", ")}", *locales.map(&:to_s)]),
+                      :select => "#{tbl}.id, #{tbl}.content_id ",
+                      :order => sanitize_sql_for_conditions(["#{locale_order}", *locales.map(&:to_s)]),
                       :conditions => conditions,
                       :include => options[:include],
                       :joins => options[:joins]

@@ -232,14 +232,14 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   def test_search_by_locale_in_model_with_after_find
     CallbackTestModel.create(:field => "hola", :locale => "ca", :content_id => 2)
     CallbackTestModel.reset_counter
-    CallbackTestModel.locale('ca').first
+    CallbackTestModel.locale('ca', :all).first
     assert_equal 1, CallbackTestModel.after_find_counter
   end
   
   def test_search_by_locale_in_model_with_after_initialize
     CallbackTestModel.create(:field => "hola", :locale => "ca", :content_id => 2)
     CallbackTestModel.reset_counter    
-    CallbackTestModel.locale('ca').first
+    CallbackTestModel.locale('ca', :all).first
     assert_equal 1, CallbackTestModel.after_initialize_counter
   end  
   

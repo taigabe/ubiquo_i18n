@@ -558,17 +558,6 @@ module UbiquoI18n
             locales_string = locales.size > 0 ? (["#{tbl}.locale != ?"]*(locales.size)).join(", ") : nil
             locale_order = ["#{tbl}.content_id", locales_string].compact.join(", ")
 
-            # find the final IDs
-            ids = nil
-
-            # redefine after_find callback method avoiding its call with next find
-            self.class_eval do
-              def after_find_with_neutralize; end
-              def after_initialize_with_neutralize; end
-              alias_method_chain :after_find, :neutralize if self.instance_methods.include?("after_find")
-              alias_method_chain :after_initialize, :neutralize if self.instance_methods.include?("after_initialize")
-            end
-
             adapters_with_custom_sql = %w{PostgreSQL MySQL}
             current_adapter = ::ActiveRecord::Base.connection.adapter_name
             if adapters_with_custom_sql.include?(current_adapter)
@@ -617,10 +606,21 @@ module UbiquoI18n
               # For the other adapters, the strategy is to do two subqueries.
               # This can be problematic for generic queries since we have to
               # suppress the paginator scope to guarantee the correctness (#254)
+
+              # find the final IDs
+              ids = nil
+
+              # redefine after_find callback method avoiding its call with next find
+              self.class_eval do
+                def after_find_with_neutralize; end
+                def after_initialize_with_neutralize; end
+                alias_method_chain :after_find, :neutralize if self.instance_methods.include?("after_find")
+                alias_method_chain :after_initialize, :neutralize if self.instance_methods.include?("after_initialize")
+              end
+
               begin
                 # record possible scoped conditions
                 previous_conditions = scope(:find, :conditions)
-
                 # removes paginator scope.
                 with_exclusive_scope(:find => {:limit => nil, :offset => nil, :joins => scope(:find, :joins), :include => scope(:find, :include)}) do
                   conditions = merge_conditions(locale_conditions, options[:conditions])

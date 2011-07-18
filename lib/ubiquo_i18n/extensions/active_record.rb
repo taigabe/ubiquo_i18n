@@ -327,7 +327,7 @@ module UbiquoI18n
                     end
                   end
                 }
-              )
+              ) if is_translatable?
 
               # Marker to avoid recursive redefinition
               initialize_translation_shared association_id

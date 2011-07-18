@@ -343,6 +343,22 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
 
   end
 
+  def test_non_translatable_has_many_to_translated_sti_correctly_updates_the_associations
+    origin = RelatedTestModel.create
+
+    sti_instance = FirstSubclass.create(:locale => "en", :related_test_model => origin)
+
+    assert_equal 1, origin.reload.inheritance_test_models.count
+
+    translated_sti = sti_instance.translate('es', :copy_all => true)
+    translated_sti.save
+
+    assert_equal 2, origin.reload.inheritance_test_models.count
+
+    origin.inheritance_test_models = []
+    assert_equal [], origin.reload.inheritance_test_models
+  end
+
   def test_translatable_belongs_to_correctly_updates_translations_when_nullified_by_attribute_assignation
     origin, translated_origin = create_test_model_with_relation_and_translation
 

@@ -27,6 +27,9 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
       
       l = create_locale(:iso_code => "en")
       assert l.errors.on(:iso_code)
+      
+      l = create_locale(:iso_code => "EN")
+      assert l.errors.on(:iso_code)
     end
   end
 

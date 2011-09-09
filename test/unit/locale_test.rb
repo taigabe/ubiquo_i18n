@@ -22,13 +22,13 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
   
   def test_should_require_unique_iso_code
     assert_difference 'Locale.count', 1 do
-      l = create_locale(:iso_code => "en")
+      l = create_locale(:iso_code => "my_code")
       assert !l.new_record?
       
-      l = create_locale(:iso_code => "en")
+      l = create_locale(:iso_code => "my_code")
       assert l.errors.on(:iso_code)
       
-      l = create_locale(:iso_code => "EN")
+      l = create_locale(:iso_code => "MY_CODE")
       assert l.errors.on(:iso_code)
     end
   end

@@ -3,7 +3,7 @@ require 'mocha'
 
 def create_locale(options = {})
   default_options = {
-    :iso_code => 'ca'
+    :iso_code => 'iso'
   }
   Locale.create(default_options.merge(options))
 end

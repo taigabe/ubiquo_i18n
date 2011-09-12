@@ -168,9 +168,7 @@ module UbiquoI18n
               begin
                 must_save = false
                 # act on reflections where translatable == false
-                self.class.reflections.select do |name, reflection|
-                  reflection.options[:translation_shared] == true
-                end.each do |association_id, reflection_values|
+                self.class.translation_shared_relations.each do |association_id, reflection_values|
                   association_values = model.send("#{association_id}_without_shared_translations")
                   record = [association_values].flatten.first
 
@@ -220,12 +218,12 @@ module UbiquoI18n
           define_method 'prepare_for_shared_translations' do
             # Rails doesn't reload the belongs_to associations when the _id field is changed,
             # which causes cached data to persist when it's already obsolete
-            self.class.reflections.select do |name, reflection|
-                reflection.macro == :belongs_to && reflection.options[:translation_shared]
-            end.each do |name, reflection|
-              if has_updated_existing_primary_key(reflection)
-                association = self.send("#{name}_without_shared_translations")
-                association.reload if association
+            self.class.translation_shared_relations.select do |name, reflection|
+              if reflection.macro == :belongs_to
+                if has_updated_existing_primary_key(reflection)
+                  association = self.send("#{name}_without_shared_translations")
+                  association.reload if association
+                end
               end
             end
           end
@@ -345,6 +343,13 @@ module UbiquoI18n
           reset_translation_shared reflection.name
           if reflection.options[:translation_shared]
             share_translations_for reflection.name
+          end
+        end
+
+        # Returns the reflections which are translation_shared
+        def translation_shared_relations
+          self.reflections.select do |name, reflection|
+            reflection.options[:translation_shared]
           end
         end
 

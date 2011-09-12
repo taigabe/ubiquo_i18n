@@ -46,7 +46,7 @@ class UbiquoI18n::AdaptersTest < ActiveSupport::TestCase
     connection = ActiveRecord::Base.connection
 
     # create a test table and model for our purposes
-    connection.create_table(:test_i18n_fields, :force => true) {}
+    connection.create_table(:test_i18n_fields, :force => true) {|t| t.timestamps}
     Object.const_set 'TestI18nField', Class.new(ActiveRecord::Base)
 
     # create an instance now to see how its fields will be filled

@@ -763,11 +763,12 @@ module UbiquoI18n
 
         # Used to execute a block disabling automatic translation update for this instance
         def without_updating_translations
+          previous_value = @stop_translatable_propagation
           @stop_translatable_propagation = true
           begin
             yield
           ensure
-            @stop_translatable_propagation = false
+            @stop_translatable_propagation = previous_value
           end
         end
 

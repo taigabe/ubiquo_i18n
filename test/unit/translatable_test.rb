@@ -139,6 +139,21 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal 'newf2', test_2.reload.field2
   end
 
+  def test_should_allow_nested_without_updating_translation_calls
+    test_1 = create_model(:field1 => 'f1', :field2 => 'f2', :locale => 'ca')
+    test_2 = create_model(:field1 => 'newf1', :field2 => 'newf2', :locale => 'es', :content_id => test_1.content_id)
+
+    test_1.without_updating_translations do
+      test_1.without_updating_translations do
+        test_1.update_attribute :field2, 'common1'
+      end
+      assert_equal 'newf2', test_2.reload.field2
+
+      test_1.update_attribute :field2, 'common2'
+    end
+    assert_equal 'newf2', test_2.reload.field2
+  end
+
   def test_should_update_translatable_fields_on_subclasses_with_them_enabled
     in_ca = InheritanceTestModel.create(:field => 'ca', :mixed => 'ca', :locale => 'ca')
     in_es = InheritanceTestModel.create(:field => 'es', :mixed => 'es', :locale => 'es', :content_id => in_ca.content_id)

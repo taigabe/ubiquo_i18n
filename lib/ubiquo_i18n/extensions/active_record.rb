@@ -166,6 +166,7 @@ module UbiquoI18n
             without_current_locale do
               self.class.is_translating_relations = true
               begin
+                must_save = false
                 # act on reflections where translatable == false
                 self.class.reflections.select do |name, reflection|
                   reflection.options[:translation_shared] == true
@@ -205,9 +206,10 @@ module UbiquoI18n
                   self.send(association_id.to_s + '=', all_relationship_contents)
                   if reflection_values.macro == :belongs_to && !new_record?
                     # belongs_to is not autosaved by rails when the association is not new
-                    save
+                    must_save = true
                   end
                 end
+                save if must_save
               ensure
                 self.class.is_translating_relations = false
               end

@@ -428,6 +428,64 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert ca.save
   end
 
+  def test_translate_should_not_create_translation_when_one_in_the_current_locale_exists
+    es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
+    ca = es.translate('ca')
+    assert_nil ca.id
+    assert_equal es.content_id, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert ca.save
+
+    ca_copy = es.translate('ca')
+    assert_nil ca_copy.id
+    assert_equal es.content_id, ca.content_id
+    assert_equal 'ca', ca.locale
+    assert !ca_copy.save
+    assert_nil ca_copy.id
+
+    ca_copy = create_model(:content_id => 1, :locale => 'ca')
+    assert_nil ca_copy.id
+  end
+
+  def test_translate_should_not_create_translation_when_one_in_the_current_locale_exists_automatically_assigning_locale
+    locale = Locale.current
+    begin
+      Locale.current = 'es'
+      es = create_model(:field1 => 'val', :field2 => 'val')
+      ca = es.translate('ca')
+      assert_nil ca.id
+      assert_equal es.content_id, ca.content_id
+      assert_equal 'ca', ca.locale
+      assert ca.save
+
+      # duplication, abort
+      ca_copy = nil
+      ca_copy = es.translate('ca')
+      assert_nil ca_copy.id
+      assert_equal es.content_id, ca.content_id
+      assert_equal 'ca', ca.locale
+
+      assert !ca_copy.save
+
+      ca_copy.class.expects(:human_name).twice.returns('FooModelName')
+      assert 1, ca_copy.errors.length
+      error_message = ca_copy.errors.on(:locale).to_s
+
+      assert error_message.include?("Catalan")
+      assert error_message.include?("FooModelName")
+      assert_nil ca_copy.id
+
+      # duplication, abort
+      # Here we use the same method applied in controllers: Model.create(:content_id => 1)
+      Locale.current = 'ca'
+      ca_copy = nil
+      ca_copy = create_model(:content_id => es.content_id)
+      assert_nil ca_copy.id
+    ensure
+      Locale.current = locale
+    end
+  end
+
   def test_translate_should_create_translation_with_correct_values_when_copy_all_false
     es = create_model(:content_id => 1, :locale => 'es', :field1 => 'val', :field2 => 'val')
     ca = TestModel.translate(1, 'ca', :copy_all => false)

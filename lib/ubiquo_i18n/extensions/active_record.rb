@@ -20,12 +20,35 @@ module UbiquoI18n
         #   :timestamps => set to false to avoid translatable (i.e. independent per translation) timestamps
 
         def translatable(*attrs)
+         
           # inherit translatable attributes
           @translatable_attributes = self.translatable_attributes || []
 
           @really_translatable_class = self
           @translatable = true
 
+          # delete the specific validation to avoid problem with connector reloading in tests
+          self.clear_locale_uniqueness_per_entity_validation
+
+          # assure no duplicated objects for the same locale
+          validates_uniqueness_of(:locale,
+            :identifier => uniqueness_per_entity_validation_identifier,
+            :scope => :content_id,
+            :case_sensitive => false,
+            :message => Proc.new { |*attrs|
+              # used in console and test when we do manually a
+              #    translation = object.translate('hola')
+              locale = attrs.first
+              # used as in controller when we do a normal create with a content_id
+              #
+              #    translation = Model.create(:field => 'foo', :content_id => 1)
+              locale = attrs.last[:value] rescue false
+              humanized_locale = Locale.find_by_iso_code(locale)
+              humanized_locale = humanized_locale.english_name if humanized_locale
+              I18n.t('ubiquo.i18n.locale_uniqueness_per_entity',
+                      :model => self.human_name,
+                      :object_locale => humanized_locale)
+            })
           # extract and parse options
           options = attrs.extract_options!
           # add attrs from this class
@@ -531,6 +554,20 @@ module UbiquoI18n
           end
         end
 
+        def clear_validation identifier
+          self.validate.delete_if do |v|
+            v.identifier == identifier
+          end if self.validate.respond_to?(:delete_if)
+        end
+
+        def uniqueness_per_entity_validation_identifier
+          :locale_uniqueness_per_entity
+        end
+
+        def clear_locale_uniqueness_per_entity_validation
+          clear_validation uniqueness_per_entity_validation_identifier
+        end
+
         private
 
         # This method is the one that actually applies the locale filter
@@ -679,14 +716,19 @@ module UbiquoI18n
       module InstanceMethods
 
         def self.included(klass)
+          klass.send :before_validation, :initialize_i18n_fields
           klass.alias_method_chain :update, :translatable
           klass.alias_method_chain :create, :translatable
           klass.alias_method_chain :create, :i18n_fields
-
         end
 
         # proxy to add a new content_id if empty on creation
         def create_with_i18n_fields
+          initialize_i18n_fields
+          create_without_i18n_fields
+        end
+
+        def initialize_i18n_fields
           if self.class.is_translatable?
             # we do this even if there is not currently any tr. attribute,
             # as long as is a translatable model
@@ -697,7 +739,6 @@ module UbiquoI18n
               self.locale = Locale.current
             end
           end
-          create_without_i18n_fields
         end
 
         # Whenever we update existing content or create a translation, the expected behaviour is the following

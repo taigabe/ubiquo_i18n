@@ -3,6 +3,7 @@ es:
     i18n:
       translations: "Traducciones"
       translations_title: "Ir a la administración de traducciones"
+      locale_uniqueness_per_entity: "La entitat %{model} ya dispone de traducción en %{object_locale}"
       locales_help_message: "Aqui puedes administrar las traducciones disponibles."
       locales_updated: "Traducciones actualizadas"
       select_default_locale_error: "Debes marcar como valor por defecto una traducción activa."

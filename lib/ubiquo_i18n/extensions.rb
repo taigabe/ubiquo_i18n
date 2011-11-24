@@ -1,8 +1,11 @@
 module UbiquoI18n::Extensions; end
 
 ActiveRecord::Base.send(:include, UbiquoI18n::Extensions::ActiveRecord)
+ActiveRecord::Base.send(:include, UbiquoI18n::Extensions::NestedAttributes)
+ActiveRecord::Reflection::AssociationReflection.send(:include, UbiquoI18n::Extensions::AssociationReflection)
 ActiveRecord::Associations::AssociationCollection.send(:include, UbiquoI18n::Extensions::AssociationCollection)
 ActiveRecord::Associations::BelongsToAssociation.send(:include, UbiquoI18n::Extensions::BelongsToAssociation)
+ActiveRecord::Associations::HasOneAssociation.send(:include, UbiquoI18n::Extensions::HasOneAssociation)
 ActiveRecord::Associations::BelongsToPolymorphicAssociation.send(:include, UbiquoI18n::Extensions::BelongsToAssociation)
 ActiveRecord::NamedScope::Scope.send(:include, UbiquoI18n::Extensions::NamedScope)
 ActiveRecord::Associations::ClassMethods.send(:include, UbiquoI18n::Extensions::Associations)

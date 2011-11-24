@@ -12,6 +12,31 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     end
   end
 
+  def test_untranslatable_method_reverts_translatable
+    ar = create_ar
+    ar.class_eval do
+      translatable :field
+      untranslatable
+    end
+    assert !ar.is_translatable?
+    assert ar.instance_variable_get('@translatable_attributes').empty?
+  end
+
+  def test_untranslatable_method_maintains_parent_translatable
+    ar = create_ar
+    ar.class_eval do
+      translatable :field
+    end
+    son = Class.new(ar)
+    son.class_eval do
+      translatable :field2
+      untranslatable
+    end
+
+    assert ar.is_translatable?
+    assert [:field], ar.instance_variable_get('@translatable_attributes')
+  end
+
   def test_should_accumulate_translatable_attributes_list_from_parent
     ar = create_ar
     ar.class_eval do
@@ -32,7 +57,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
       assert gson.instance_variable_get('@translatable_attributes').include?(field)
     end
   end
-  
+
   def test_should_not_set_translatable_timestamps
     ar = create_ar
     ar.class_eval do
@@ -41,7 +66,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert !ar.instance_variable_get('@translatable_attributes').include?(:created_at)
     assert !ar.instance_variable_get('@translatable_attributes').include?(:updated_at)
   end
-  
+
   def test_should_set_translatable_timestamps_by_default
     ar = create_ar
     ar.class_eval do
@@ -49,13 +74,13 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     end
     assert ar.instance_variable_get('@translatable_attributes').include?(:created_at)
     assert ar.instance_variable_get('@translatable_attributes').include?(:updated_at)
-  end  
+  end
 
   def test_should_have_global_translatable_attributes
     ar = create_ar
     assert_equal_set [:locale, :content_id], ar.instance_variable_get('@global_translatable_attributes')
   end
-  
+
   def test_should_add_global_translatable_attribute
     ar = create_ar
     ar.class_eval do
@@ -68,7 +93,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     ar = create_ar
     assert_equal [], ar.instance_variable_get('@translatable_scopes')
   end
-  
+
   def test_should_add_global_translatable_scope
     ar = create_ar
     ar.class_eval do
@@ -77,7 +102,7 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     scopes = ar.instance_variable_get('@translatable_scopes')
     assert scopes.include?(:attr1)
   end
-  
+
   def test_should_store_locale
     model = create_model(:field1 => 'ca', :locale => 'ca')
     assert String === model.locale
@@ -89,28 +114,28 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     model = create_model(:locale => locale)
     assert_equal 'ca', model.locale
   end
-  
+
   def test_should_add_content_id_on_create_if_empty
     assert_difference 'TestModel.count' do
       model = create_model
       assert_not_nil model.content_id
-    end  
+    end
   end
-  
+
   def test_should_not_add_content_id_on_create_if_exists
     assert_difference 'TestModel.count' do
       model = create_model(:content_id => 12)
       assert_equal 12, model.content_id
-    end      
+    end
   end
-  
+
   def test_should_not_add_current_locale_on_create_if_exists
     assert_difference 'TestModel.count' do
       model = create_model(:locale => 'ca')
       assert_equal 'ca', model.locale
     end
   end
-  
+
   def test_should_update_non_translatable_attributes_in_instances_sharing_content_id_on_create
     test_1 = create_model(:field1 => 'f1', :field2 => 'f2', :locale => 'ca')
     test_2 = create_model(:field1 => 'newf1', :field2 => 'newf2', :locale => 'es', :content_id => test_1.content_id)
@@ -164,14 +189,14 @@ class Ubiquo::TranslatableTest < ActiveSupport::TestCase
     assert_equal 'ca', sub_ca.reload.field
     assert_equal 'ca', sub_ca.mixed
   end
-  
+
   private
-    
+
   def create_ar(options = {})
     Class.new(ActiveRecord::Base)
   end
-    
+
   create_test_model_backend
-  
+
 end
 

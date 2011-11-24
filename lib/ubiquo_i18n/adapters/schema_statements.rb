@@ -53,7 +53,8 @@ module UbiquoI18n
           fill_i18n_fields(table_name, adapter, locale)
         end
 
-        # create or remove indexes for these new fields
+        # Create or remove indexes for these new fields. Skip it in tests for speed
+        return if Rails.env.test?
         indexes = [:locale, :content_id]
         if translatable
           indexes.each do |index|

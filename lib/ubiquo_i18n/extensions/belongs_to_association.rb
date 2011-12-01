@@ -22,7 +22,7 @@ module UbiquoI18n
             # sometimes is not true.
             # For caution, only applies this "fixed" behaviour on
             # translation_shared associations
-            !(proxy_reflection.options[:translation_shared] &&
+            !(proxy_reflection.is_translation_shared? &&
               proxy_owner.has_updated_existing_primary_key(proxy_reflection))
           end
         end

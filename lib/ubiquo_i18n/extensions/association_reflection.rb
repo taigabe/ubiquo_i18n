@@ -18,6 +18,24 @@ module UbiquoI18n
           options[:through] && through_reflection.klass.is_translatable?
         end
 
+        # Returns true if +record+ has the reflection contents shared with its translations
+        # If there is no +record+, returns the general use case
+        def is_translation_shared?(record = nil)
+          options[:translation_shared] ||
+            (options[:translation_shared_on_new] && record && record.new_record?)
+        end
+
+        # Marks this reflection as :translation_shared if +value+ says so.
+        # +options+ can be one of:
+        #   :only_new => :translation_shared +value+ will only be applied for new records
+        def mark_as_translation_shared(value, options = {})
+          if options[:only_new]
+            self.options[:translation_shared_on_new] = value
+          else
+            self.options[:translation_shared] = value
+          end
+        end
+
         # Mimetizes +configure_dependency_for_has_many+ but performs the necessary
         # changes given that +reflection+ is translation-shared.
         # Here there is only the treatment for :dependent => :destroy. Given the

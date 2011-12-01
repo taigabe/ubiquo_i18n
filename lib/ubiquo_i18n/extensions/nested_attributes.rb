@@ -26,7 +26,7 @@ module UbiquoI18n
               define_method "#{association_name}_attributes_with_shared_translations=" do |attribute_collection|
                 attribute_set = normalized_attributes_for_nested_assignation(attribute_collection)
 
-                if reflection.options[:translation_shared]
+                if reflection.is_translation_shared?
                   # When we set attributes to an existing object, check whether it is
                   # in the current locale. If not, create a new association to set
                   # there the attributes

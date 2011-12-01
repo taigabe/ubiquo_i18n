@@ -261,20 +261,25 @@ module UbiquoI18n
           clear_locale_uniqueness_per_entity_validation
         end
 
+        def initialize_translations_for(*associations)
+          share_translations_for(associations, {:only_new => true})
+        end
+
         def share_translations_for(*associations)
-          associations.each do |association_id|
+          options = associations.extract_options!
+          associations.flatten.each do |association_id|
 
             reflection = reflections[association_id] or
               raise ::ActiveRecord::ConfigurationError, "Association named '#{association_id}' was not found"
 
-            reflection.options[:translation_shared] = true
+            reflection.mark_as_translation_shared(true, options)
 
             unless is_translation_shared_initialized? association_id
               define_method "#{association_id}_with_shared_translations" do
 
                 association = self.send("#{association_id}_without_shared_translations")
 
-                return association if !applicable_translation_shared
+                return association if !applicable_translation_shared(reflection)
 
                 return association if cached_translation_shared_association(association)
 
@@ -368,19 +373,21 @@ module UbiquoI18n
                 association_id,
                 :after_remove => Proc.new { |record, removed|
                   record.class.translating_relations do
+                    if reflections[association_id].is_translation_shared?
 
-                    # Tell to the record translations that this element has been removed
-                    record.translations.each do |translation|
-                      to_remove = removed.class.is_translatable? ? removed.with_translations : removed
-                      translation.send(association_id).delete to_remove
-                    end if is_translatable?
+                      # Tell to the record translations that this element has been removed
+                      record.translations.each do |translation|
+                        to_remove = removed.class.is_translatable? ? removed.with_translations : removed
+                        translation.send(association_id).delete to_remove
+                      end if is_translatable?
 
-                    # The translations of the removed item have to be also removed
-                    # from this record's association
-                    if removed.class.is_translatable?
-                      record.send(association_id).delete removed.translations
+                      # The translations of the removed item have to be also removed
+                      # from this record's association
+                      if removed.class.is_translatable?
+                        record.send(association_id).delete removed.translations
+                      end
+
                     end
-
                   end
                 }
               )
@@ -408,20 +415,25 @@ module UbiquoI18n
 
         # Reverses the action of +share_translations_for+
         def unshare_translations_for(*associations)
-          associations.each do |association_id|
+          options = associations.extract_options!
+          associations.flatten.each do |association_id|
             if is_translation_shared_initialized? association_id
-              reflection = reflections[association_id]
-              reflection.options[:translation_shared] = false
+              reflections[association_id].mark_as_translation_shared(false, options)
               alias_method association_id, "#{association_id}_without_shared_translations"
               uninitialize_translation_shared association_id
             end
           end
         end
 
+        # Reverses the action of +initialize_translations_for+
+        def uninitialize_translations_for(*associations)
+          unshare_translations_for associations, {:only_new => true}
+        end
+
         # Given a reflection, will process the :translation_shared option
         def process_translation_shared reflection
           reset_translation_shared reflection.name
-          if reflection.options[:translation_shared]
+          if reflection.is_translation_shared?
             share_translations_for reflection.name
           end
         end
@@ -429,7 +441,7 @@ module UbiquoI18n
         # Returns the reflections that are translation_shared
         def translation_shared_reflections
           self.reflections.select do |name, reflection|
-            reflection.options[:translation_shared]
+            reflection.is_translation_shared?
           end
         end
 
@@ -959,9 +971,10 @@ module UbiquoI18n
         end
 
         # If we don't have a current locale and we aren't in a translatable instance,
-        # there is no sharing to do.
-        def applicable_translation_shared
-          Locale.current || self.class.is_translatable?
+        # there is nothing we can do to share.
+        # Also, if the reflection is not marked as shared we should do nothing.
+        def applicable_translation_shared reflection
+          (Locale.current || self.class.is_translatable?) && reflection.is_translation_shared?(self)
         end
 
         # Returns whether +association+ has been already loaded
@@ -989,7 +1002,7 @@ module UbiquoI18n
             (self.class.instance_variable_get('@global_translatable_attributes') || []) +
             (self.class.reflections.select do |name, ref|
                 ref.macro != :belongs_to ||
-                !ref.options[:translation_shared] ||
+                !ref.is_translation_shared? ||
                 ((model = [send(name)].first) && model.class.is_translatable?)
             end.map{|name, ref| ref.primary_key_name})
           attribute_names - translatable_attributes.map{|attr| attr.to_s}

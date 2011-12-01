@@ -679,33 +679,34 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
   end
 
   def test_share_and_unshare_translations_for
-    assert !TestModel.reflections[:unshared_related_test_models].options[:translation_shared]
+    assert !TestModel.reflections[:unshared_related_test_models].is_translation_shared?
 
     TestModel.class_eval do
       share_translations_for :unshared_related_test_models
     end
-    assert TestModel.reflections[:unshared_related_test_models].options[:translation_shared]
+    assert TestModel.reflections[:unshared_related_test_models].is_translation_shared?
 
     TestModel.unshare_translations_for :unshared_related_test_models
-    assert !TestModel.reflections[:unshared_related_test_models].options[:translation_shared]
+    assert !TestModel.reflections[:unshared_related_test_models].is_translation_shared?
   end
 
   def test_share_and_unshare_translations_for_multiple_times_does_not_crash
-    assert !TestModel.reflections[:unshared_related_test_models].options[:translation_shared]
+    assert !TestModel.reflections[:unshared_related_test_models].is_translation_shared?
 
     TestModel.class_eval do
       share_translations_for :unshared_related_test_models, :unshared_related_test_models
     end
 
     TestModel.unshare_translations_for :unshared_related_test_models, :unshared_related_test_models
-    assert !TestModel.reflections[:unshared_related_test_models].options[:translation_shared]
+    assert !TestModel.reflections[:unshared_related_test_models].is_translation_shared?
   end
 
   def test_share_translations_in_has_many_through_untranslatable_forces_source_table_translatable
-    TestModel.reflections[:inheritance_test_models].options[:translation_shared] = false
+    TestModel.reflections[:inheritance_test_models].mark_as_translation_shared(false)
+    assert !TestModel.reflections[:inheritance_test_models].is_translation_shared?
     TestModel.unshare_translations_for :through_related_test_models
     TestModel.share_translations_for :through_related_test_models
-    assert TestModel.reflections[:inheritance_test_models].options[:translation_shared]
+    assert TestModel.reflections[:inheritance_test_models].is_translation_shared?
   end
 
   def test_share_translations_for_translation_shared_belongs_to_untranslated

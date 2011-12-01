@@ -16,7 +16,7 @@ module UbiquoI18n
 
       module InstanceMethods
         def replace_with_shared_translations(obj, dont_save = false)
-          if proxy_reflection.options[:translation_shared]
+          if proxy_reflection.is_translation_shared?
             proxy_owner.class.translating_relations do
               proxy_owner.translations.each do |translation|
                 association = translation.send("#{@reflection.name}_without_shared_translations")

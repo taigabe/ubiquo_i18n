@@ -720,6 +720,15 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     end
   end
 
+  def test_clone_ignoring_i18n_locales
+    m = create_model
+    assert !m.new_record?
+    good_clone = m.clone
+    bad_clone  = m.clone_without_i18n_fields_ignore
+    assert_equal nil,          good_clone.content_id
+    assert_equal m.content_id, bad_clone.content_id
+  end
+
 end
 
 create_test_model_backend

@@ -6,6 +6,7 @@ module UbiquoI18n
         super
         base.extend(ClassMethods)
         base.send :include, InstanceMethods
+        base.send :alias_method_chain, :clone, :i18n_fields_ignore
       end
 
       module ClassMethods
@@ -663,7 +664,6 @@ module UbiquoI18n
           )
         end
 
-
         private
 
         # This method is the one that actually applies the locale filter
@@ -878,6 +878,13 @@ module UbiquoI18n
               self.locale = Locale.current
             end
           end
+        end
+
+        # When cloning a object do not copy the content_id
+        def clone_with_i18n_fields_ignore
+          clone = clone_without_i18n_fields_ignore
+          clone.content_id = nil if self.class.is_translatable?
+          clone
         end
 
         # Whenever we update existing content or create a translation, the expected behaviour is the following

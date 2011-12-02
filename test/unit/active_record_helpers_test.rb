@@ -505,8 +505,14 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_nil ca_copy.id
     assert_equal es.content_id, ca.content_id
     assert_equal 'ca', ca.locale
+
+
+    Locale.any_instance.expects(:native_name).returns('foo_test_value')
+
     assert !ca_copy.save
     assert_nil ca_copy.id
+
+    assert ca_copy.errors.on(:locale).include?('foo_test_value')
 
     ca_copy = create_model(:content_id => 1, :locale => 'ca')
     assert_nil ca_copy.id
@@ -530,13 +536,14 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
       assert_equal es.content_id, ca.content_id
       assert_equal 'ca', ca.locale
 
+      ca_copy.class.expects(:human_name).twice.returns('FooModelName')
+
       assert !ca_copy.save
 
-      ca_copy.class.expects(:human_name).twice.returns('FooModelName')
       assert 1, ca_copy.errors.length
       error_message = ca_copy.errors.on(:locale).to_s
 
-      assert error_message.include?("Catalan")
+      assert error_message.downcase.include?("catal&agrave;") || error_message.downcase.include?("català")
       assert error_message.include?("FooModelName")
       assert_nil ca_copy.id
 

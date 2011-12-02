@@ -653,8 +653,8 @@ module UbiquoI18n
             :case_sensitive => false,
             :message => Proc.new { |*attrs|
               locale = attrs.last[:value] rescue false
-              humanized_locale = Locale.find_by_iso_code(locale)
-              humanized_locale = humanized_locale.english_name if humanized_locale
+              humanized_locale = Locale.find_by_iso_code(locale.to_s)
+              humanized_locale = humanized_locale.native_name if humanized_locale
               I18n.t(
                 'ubiquo.i18n.locale_uniqueness_per_entity',
                 :model => self.human_name,

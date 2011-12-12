@@ -5,18 +5,20 @@ class UbiquoI18n::Extensions::HelpersTest < ActionView::TestCase
   def test_locale_selector_displays_select
     html_content = HTML::Document.new(locale_selector)
     assert_select html_content.root, "form" do
-      assert_select 'select'
+      assert_select 'select#data-locale-selector' do
+        assert_select 'option', Locale.active.size
+      end
     end
   end
 
   def test_locale_selector_deletes_page_by_default
     html_content = HTML::Document.new(locale_selector)
-    assert_select html_content.root,  ['form[action=?]', /page.+/], false
+    assert_select html_content.root, ['option[value=?]', /page.+/], false
   end
 
   def test_locale_selector_accepts_keep_page_option
     html_content = HTML::Document.new(locale_selector(:keep_page => true))
-    assert_select html_content.root, 'form[action=?]', /page.+/
+    assert_select html_content.root, ['option[value=?]', /page.+/], true
   end
 
   def test_show_translations_for_a_existing_object

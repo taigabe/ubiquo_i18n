@@ -1,22 +1,19 @@
 module UbiquoI18n
   module Extensions
     module TestCase
-      #This method allows functional test to simulate a ubiquo_user login by setting session value
-      #
-      #If the attribute is a Symbol, the user is getted from fixture helper ubiquo_users(fixture_name).
-      #For example, if :one is passed, a fixture named with 'one:' will be used
-      #
-      #If the attribute is a UbiquoUser, that user is used.
-      #
-      #If the attribute is nil (or none setted) the 'admin' named fixture will be used
-      #
-      #If the attribute is a number, this number will be used as a ubiquo_user_id, but don't validates to be a valid id.
-      def set_session_locale(locale = nil)
-        if @request
-          @request.session[:locale] = locale || Locale.default
+      def self.included(base)
+        base.send :include, InstanceMethods
+        base.send :alias_method_chain, :process, :locale
+      end
+
+      module InstanceMethods
+        # set the locale parameter in the functional test method process
+        # to avoid errors related to the tests and no the app
+        def process_with_locale(action, parameters = nil, session = nil, flash = nil, http_method = 'GET')
+          parameters = { :locale => ::Locale.default }.merge(parameters || {})
+          process_without_locale(action, parameters, session, flash, http_method)
         end
       end
-      
     end
   end
 end

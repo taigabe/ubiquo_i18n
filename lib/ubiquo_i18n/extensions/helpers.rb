@@ -14,11 +14,13 @@ module UbiquoI18n
       def locale_selector(options = {})
         redirect_params = params.dup
         redirect_params.delete(:page) unless options[:keep_page]
-        if Locale.active.size > 1
-          form_tag(url_for(redirect_params), :method => :get) +
+        redirect_params.delete(:controller)
+        redirect_params.delete(:action)
+        if active_locales.size > 1
+          form_tag(url_for, :method => :get) +
             html_unescape(select_tag("locale",
-                                     options_for_locale_selector,
-                                     :id => "locale_selector")) +
+                                     options_for_locale_selector(redirect_params),
+                                     :id => "data-locale-selector")) +
             "</form>"
         end
       end
@@ -40,11 +42,23 @@ module UbiquoI18n
         end if ubiquo_config_call(:assets_permit, {:context => :ubiquo_media})
       end
 
-      def options_for_locale_selector
-        options_from_collection_for_select(Locale.active.ordered_alphabetically,
-                                           :iso_code,
-                                           :humanized_name,
-                                           current_locale)
+      def options_for_locale_selector(url_params)
+        options  = []
+        selected = nil
+
+        active_locales.ordered_alphabetically.each do |locale|
+          url = url_for(url_params.merge(:locale => locale.to_s))
+          options << [locale.humanized_name, url]
+          selected = url if locale.to_s == current_locale.to_s
+        end
+
+        options_for_select(options, selected)
+      end
+
+      private
+
+      def active_locales
+        @active_locales ||= ::Locale.active
       end
     end
   end

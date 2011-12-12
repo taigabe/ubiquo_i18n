@@ -1,3 +1,9 @@
+begin
+  require 'routing-filter'
+rescue LoadError
+  raise "Could not load the routing-filter gem. Install it with `gem install routing-filter` or add this line to your Gemfile: `gem 'routing-filter'`."
+end
+
 require 'ubiquo_i18n'
 
 config.after_initialize do

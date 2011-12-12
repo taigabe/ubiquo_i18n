@@ -10,8 +10,7 @@ ActiveRecord::Associations::BelongsToPolymorphicAssociation.send(:include, Ubiqu
 ActiveRecord::NamedScope::Scope.send(:include, UbiquoI18n::Extensions::NamedScope)
 ActiveRecord::Associations::ClassMethods.send(:include, UbiquoI18n::Extensions::Associations)
 Ubiquo::Extensions::Loader.append_include(:UbiquoController, UbiquoI18n::Extensions::LocaleChanger)
+Ubiquo::Extensions::Loader.append_include(:UbiquoController, UbiquoI18n::Extensions::LocaleUrlBuilder)
 Ubiquo::Extensions::Loader.append_helper(:UbiquoController, UbiquoI18n::Extensions::Helpers)
-if Rails.env.test?
-  ActionController::TestCase.send(:include, UbiquoI18n::Extensions::TestCase)
-  ActionController::TestCase.setup(:set_session_locale)
-end
+
+ActionController::TestCase.send(:include, UbiquoI18n::Extensions::TestCase) if Rails.env.test?

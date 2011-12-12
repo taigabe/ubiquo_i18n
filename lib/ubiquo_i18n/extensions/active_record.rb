@@ -707,17 +707,14 @@ module UbiquoI18n
             # at this point, joins_sql in fact only includes the joins coming from options[:include]
             add_joins!(joins_sql, options[:joins])
             add_conditions!(conditions_sql = '', options[:conditions], scope(:find))
-
-            unless locale_options[:strict]
-              new_options = options.merge(:conditions => nil, :joins => nil)
-              scope(:find)[:conditions] = nil
-              scope(:find)[:joins] = nil
-            end
+            conditions_sql.sub!('WHERE', '')
 
             # now construct the subquery
             if locale_conditions.present?
               sql_locale_conditions = merge_conditions(locale_conditions, '')
             end
+
+            from_and_joins = "FROM #{tbl} " + joins_sql.to_s
 
             adapters_with_custom_sql = %w{PostgreSQL MySQL}
             current_adapter = connection.adapter_name
@@ -727,17 +724,45 @@ module UbiquoI18n
               # filter to do its job in a single sql. We use them for efficiency
               # In these cases, the subquery that will be build must respect
               # includes, joins and conditions from the original query
+              # Note: all this is crying for a refactoring
 
 
-              subfilter = if locale_options[:strict]
-                extra_cond = sql_locale_conditions.present? ? " AND #{sql_locale_conditions}" : ''
-                original_query = "FROM #{tbl} " + joins_sql.to_s + conditions_sql.to_s + extra_cond
-                original_query
+              subfilter = case locale_options[:mode]
+              when :strict
+                all_conditions = merge_conditions(conditions_sql, sql_locale_conditions)
+                from_and_joins + (all_conditions.present? ? "WHERE #{all_conditions}" : '')
+              when :mixed
+                content_id_query = from_and_joins
+                content_id_query << "WHERE #{conditions_sql}" if conditions_sql.present?
+                id_extra_cond = sql_locale_conditions.present? ? "#{sql_locale_conditions} AND" : ''
+                new_options = options.merge(:conditions => nil, :joins => nil)
+                scope(:find)[:conditions] = nil
+                scope(:find)[:joins] = nil
+                "FROM #{tbl} WHERE #{id_extra_cond} #{tbl}.content_id IN ("+
+                    "SELECT #{tbl}.content_id #{content_id_query})"
               else
-                original_query = "FROM #{tbl} " + joins_sql.to_s + conditions_sql.to_s
-                extra_cond = sql_locale_conditions.present? ? "#{sql_locale_conditions} AND" : ''
-                "FROM #{tbl} WHERE #{extra_cond} #{tbl}.content_id IN ("+
-                    "SELECT #{tbl}.content_id #{original_query})"
+                # Default. Only search for matches in translations in associations
+                conditions_tables = tables_in_string(conditions_sql)
+                references_other_tables = conditions_tables.size > 1 || conditions_tables.first != self.table_name
+                if references_other_tables
+                  mixed_conditions = other_table_conditions(conditions_sql).join('AND')
+                  own_conditions = same_table_conditions(conditions_sql).join('AND')
+
+                  content_id_query = from_and_joins
+                  content_id_query << "WHERE #{mixed_conditions}" unless mixed_conditions.blank?
+                  id_extra_cond = merge_conditions(sql_locale_conditions, own_conditions)
+                  id_extra_cond += ' AND' if id_extra_cond.present?
+
+                  new_options = options.merge(:conditions => own_conditions, :joins => nil)
+                  scope(:find)[:conditions] = nil
+                  scope(:find)[:joins] = nil
+                  "FROM #{tbl} WHERE #{id_extra_cond} #{tbl}.content_id IN ("+
+                       "SELECT #{tbl}.content_id #{content_id_query})"
+                else
+                  # No associations involved. Same as :strict. Needs a refactor!
+                  all_conditions = merge_conditions(conditions_sql, sql_locale_conditions)
+                  from_and_joins + (all_conditions.present? ? "WHERE #{all_conditions}" : '')
+                end
               end
 
               locale_filter = case current_adapter
@@ -787,20 +812,38 @@ module UbiquoI18n
               begin
 
                 # removes paginator scope.
-                with_exclusive_scope(:find => {:limit => nil, :offset => nil, :joins => scope(:find, :joins), :include => scope(:find, :include)}) do
+                with_exclusive_scope(:find => {:limit => nil, :offset => nil, :joins => nil, :include => nil}) do
 
-                  conditions_for_id_query = if locale_options[:strict]
-                    conditions_sql.sub!('WHERE', '')
-                    extra_cond = sql_locale_conditions.present? ? " AND #{sql_locale_conditions}" : ''
-                    original_query = conditions_sql.to_s + extra_cond
-                    original_query
+
+                  conditions_for_id_query = case locale_options[:mode]
+                  when :strict
+                      merge_conditions(conditions_sql, sql_locale_conditions)
+                  when :mixed
+                        original_query = from_and_joins
+                        joins_sql = nil # already applied
+                        (original_query << "WHERE #{conditions_sql}") if conditions_sql.present?
+                        extra_cond = sql_locale_conditions.present? ? "#{sql_locale_conditions} AND" : ''
+                        "#{extra_cond} #{tbl}.content_id IN ("+
+                            "SELECT #{tbl}.content_id #{original_query})"
                   else
-                    original_query = "FROM #{tbl} " + joins_sql.to_s
-                    joins_sql = nil # already applied
-                    (original_query << conditions_sql.to_s) if conditions_sql.present?
-                    extra_cond = sql_locale_conditions.present? ? "#{sql_locale_conditions} AND" : ''
-                    "#{extra_cond} #{tbl}.content_id IN ("+
-                        "SELECT #{tbl}.content_id #{original_query})"
+                    # Default. Only search for matches in translations in associations
+                    conditions_tables = tables_in_string(conditions_sql)
+                    references_other_tables = conditions_tables.size > 1 || conditions_tables.first != self.table_name
+                    if references_other_tables
+                        mixed_conditions = other_table_conditions(conditions_sql).join('AND')
+                        own_conditions = same_table_conditions(conditions_sql).join('AND')
+                        content_id_query = from_and_joins
+                        content_id_query << "WHERE #{mixed_conditions}" unless mixed_conditions.blank?
+                        joins_sql = nil # already applied
+                        new_options = options.merge(:conditions => own_conditions, :joins => nil)
+                        id_extra_cond = merge_conditions(sql_locale_conditions, own_conditions)
+                        id_extra_cond += ' AND' if id_extra_cond.present?
+                        "#{id_extra_cond} #{tbl}.content_id IN ("+
+                            "SELECT #{tbl}.content_id #{content_id_query})"
+                    else
+                      # No associations involved. Same as :strict
+                      merge_conditions(conditions_sql, sql_locale_conditions)
+                    end
                   end
 
                   ids = find(:all, {
@@ -823,6 +866,10 @@ module UbiquoI18n
               content_ids = {}
               ids = ids.select{ |id| content_ids[id.content_id].nil? ? content_ids[id.content_id] = id : false }.map{|id| id.id.to_i}
 
+              # these are already factored in the new conditions
+              scope(:find)[:conditions] = nil
+              scope(:find)[:joins] = nil
+
               if new_options
                 new_options[:conditions] = merge_conditions(new_options[:conditions], {:id => ids})
               else
@@ -832,6 +879,17 @@ module UbiquoI18n
           end
           # return the modified options, or the original ones if there is no change
           new_options || options
+        end
+
+        # returns a sql with the conditions that refer to other trables
+        def other_table_conditions(conditions_sql)
+          conditions_sql.split('AND') - same_table_conditions(conditions_sql)
+        end
+
+        # returns a sql with the conditions that refer to this model table
+        def same_table_conditions(conditions_sql)
+          conditions = conditions_sql.split('AND')
+          conditions.select{ |cond| cond =~ /\b#{table_name}.?\./ }
         end
 
         def merge_locale_list locales

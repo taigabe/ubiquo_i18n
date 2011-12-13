@@ -29,17 +29,19 @@ class UbiquoI18n::Extensions::HelpersTest < ActionView::TestCase
     assert show_translations(model)
   end
 
-  def test_show_translations_should_not_render_anything_for_not_persistent_objects
-    model = TestModel.new(:locale => 'test')
-    self.expects(:render).never.with(
+  def test_show_translations_should_be_rendered_for_objects_that_have_a_persistent_translation
+    existing_model = create_model(:locale => 'test')
+    model = existing_model.translate('test2')
+
+    self.expects(:render).once.with(
       :partial =>  "shared/ubiquo/model_translations",
       :locals => { :model => model, :options => {} }
     )
+    assert show_translations(model)
+  end
 
-    assert !show_translations(model)
-
-    existing_model = create_model(:locale => 'test')
-    model = existing_model.translate('test2')
+  def test_show_translations_should_be_rendered_for_objects_that_have_a_persistent_translation
+    model = TestModel.new(:locale => 'test')
     self.expects(:render).never.with(
       :partial =>  "shared/ubiquo/model_translations",
       :locals => { :model => model, :options => {} }

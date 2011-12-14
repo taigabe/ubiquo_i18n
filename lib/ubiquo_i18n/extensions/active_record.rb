@@ -236,11 +236,6 @@ module UbiquoI18n
             end
           end
 
-          # Returns true if the primary_key for +reflection+ has been changed, and it was not nil before
-          define_method 'has_updated_existing_primary_key' do |reflection|
-            send("#{reflection.primary_key_name}_changed?") && send("#{reflection.primary_key_name}_was")
-          end
-
           define_method "refresh_reflection_value_if_needed" do |reflection|
             if has_updated_existing_primary_key(reflection)
               association = self.send("#{reflection.name}_without_shared_translations")
@@ -571,6 +566,18 @@ module UbiquoI18n
           end
         end
 
+        # When a scope is used, we save their find options inside a new,
+        # unique key to avoid the loss of information that happens
+        # when we merge scopes. We use later this information to easily
+        # discriminate which conditions are to be applied in only one
+        # translation or for all translations
+        def with_scope_with_locale_filter(method_scoping = {}, action = :merge, &block)
+          if (method_scoping[:find][:conditions] rescue false)
+            method_scoping[:find][:unmerged_conditions] = method_scoping[:find][:conditions]
+          end
+          with_scope_without_locale_filter(method_scoping, action, &block)
+        end
+
 
         # Attributes that are always 'translated' (not copied between languages)
         (@global_translatable_attributes ||= []) << :locale << :content_id
@@ -611,7 +618,8 @@ module UbiquoI18n
             class << self
               alias_method_chain :find, :locale_filter
               alias_method_chain :count, :locale_filter
-              VALID_FIND_OPTIONS << :locale_scoped << :locale_list
+              alias_method_chain :with_scope, :locale_filter
+              VALID_FIND_OPTIONS << :locale_scoped << :locale_list << :unmerged_conditions
             end
           end
 
@@ -709,6 +717,13 @@ module UbiquoI18n
             add_conditions!(conditions_sql = '', options[:conditions], scope(:find))
             conditions_sql.sub!('WHERE', '')
 
+            conditions_tables = tables_in_string(conditions_sql)
+            references_other_tables = conditions_tables.size > 1 || conditions_tables.first != self.table_name
+            if references_other_tables
+              mixed_conditions = merge_conditions(*other_table_conditions(options[:conditions]))
+              own_conditions = merge_conditions(*same_table_conditions(options[:conditions]))
+            end
+
             # now construct the subquery
             if locale_conditions.present?
               sql_locale_conditions = merge_conditions(locale_conditions, '')
@@ -742,12 +757,7 @@ module UbiquoI18n
                     "SELECT #{tbl}.content_id #{content_id_query})"
               else
                 # Default. Only search for matches in translations in associations
-                conditions_tables = tables_in_string(conditions_sql)
-                references_other_tables = conditions_tables.size > 1 || conditions_tables.first != self.table_name
                 if references_other_tables
-                  mixed_conditions = other_table_conditions(conditions_sql).join('AND')
-                  own_conditions = same_table_conditions(conditions_sql).join('AND')
-
                   content_id_query = from_and_joins
                   content_id_query << "WHERE #{mixed_conditions}" unless mixed_conditions.blank?
                   id_extra_cond = merge_conditions(sql_locale_conditions, own_conditions)
@@ -827,19 +837,15 @@ module UbiquoI18n
                             "SELECT #{tbl}.content_id #{original_query})"
                   else
                     # Default. Only search for matches in translations in associations
-                    conditions_tables = tables_in_string(conditions_sql)
-                    references_other_tables = conditions_tables.size > 1 || conditions_tables.first != self.table_name
                     if references_other_tables
-                        mixed_conditions = other_table_conditions(conditions_sql).join('AND')
-                        own_conditions = same_table_conditions(conditions_sql).join('AND')
-                        content_id_query = from_and_joins
-                        content_id_query << "WHERE #{mixed_conditions}" unless mixed_conditions.blank?
-                        joins_sql = nil # already applied
-                        new_options = options.merge(:conditions => own_conditions, :joins => nil)
-                        id_extra_cond = merge_conditions(sql_locale_conditions, own_conditions)
-                        id_extra_cond += ' AND' if id_extra_cond.present?
-                        "#{id_extra_cond} #{tbl}.content_id IN ("+
-                            "SELECT #{tbl}.content_id #{content_id_query})"
+                      content_id_query = from_and_joins
+                      content_id_query << "WHERE #{mixed_conditions}" unless mixed_conditions.blank?
+                      joins_sql = nil # already applied
+                      new_options = options.merge(:conditions => own_conditions, :joins => nil)
+                      id_extra_cond = merge_conditions(sql_locale_conditions, own_conditions)
+                      id_extra_cond += ' AND' if id_extra_cond.present?
+                      "#{id_extra_cond} #{tbl}.content_id IN ("+
+                          "SELECT #{tbl}.content_id #{content_id_query})"
                     else
                       # No associations involved. Same as :strict
                       merge_conditions(conditions_sql, sql_locale_conditions)
@@ -881,15 +887,20 @@ module UbiquoI18n
           new_options || options
         end
 
-        # returns a sql with the conditions that refer to other trables
-        def other_table_conditions(conditions_sql)
-          conditions_sql.split('AND') - same_table_conditions(conditions_sql)
+        # returns an array with the sql conditions that refer to other trables
+        def other_table_conditions(conditions)
+          normalized_conditions(conditions) - same_table_conditions(conditions)
         end
 
-        # returns a sql with the conditions that refer to this model table
-        def same_table_conditions(conditions_sql)
-          conditions = conditions_sql.split('AND')
-          conditions.select{ |cond| cond =~ /\b#{table_name}.?\./ }
+        # returns an array with the sql conditions that refer to this model table
+        def same_table_conditions(conditions)
+          normalized_conditions(conditions).select{ |cond| cond =~ /\b#{table_name}.?\./ }
+        end
+
+        # returns an array of all the applicable sql conditions (given +conditions+ and the current scope)
+        def normalized_conditions(conditions)
+          scope_conditions = scoped_methods.map{|scoping| scoping[:find][:unmerged_conditions] rescue nil }.compact
+          (scope_conditions + [conditions].compact).map{|condition| sanitize_sql(condition)}
         end
 
         def merge_locale_list locales
@@ -1081,6 +1092,10 @@ module UbiquoI18n
           attrs
         end
 
+        # Returns true if the primary_key for +reflection+ has been changed, and it was not nil before
+        def has_updated_existing_primary_key reflection
+          send("#{reflection.primary_key_name}_changed?") && send("#{reflection.primary_key_name}_was")
+        end
 
         def attributes_except_unique_for_translation
           attributes.reject{|attr, value| [:id, :locale].include?(attr.to_sym)}

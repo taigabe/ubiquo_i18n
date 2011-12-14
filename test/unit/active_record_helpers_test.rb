@@ -208,6 +208,20 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [en], TestModel.locale('es', :all).scoped(options).all(:conditions => complex_conditions)
   end
 
+  def test_search_by_locale_with_virtual_shared_translations_edge_cases
+    es = create_model(:field1 => '1', :locale => 'es')
+    en = create_model(:content_id => es.content_id, :field1 => '2', :locale => 'en')
+    child = create_model(:locale => 'es', :test_model => es)
+
+    # test_models_test_models is the alias that Rails creates due to the join
+    find_parent = ['test_models_test_models.test_model_id = ?', es.id]
+    options = {:conditions => find_parent, :joins => :test_models}
+
+    # Intercalate "mixed" and "strict" conditions.
+    assert_equal [], TestModel.scoped(:conditions => ['(test_models.field1 = ?)', '1']).\
+      scoped(options).field1_is_2.locale('en', :all).all
+  end
+
   def test_search_by_locale_without_virtual_shared_translations
     es = create_model(:field1 => '1', :locale => 'es')
     en = create_model(:content_id => es.content_id, :field1 => '2', :locale => 'en')

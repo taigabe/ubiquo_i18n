@@ -4,7 +4,17 @@ module UbiquoI18n
 
       def self.included(klass)
         klass.alias_method_chain :count, :translation_shared
+        klass.alias_method_chain :reload, :translation_shared
         klass.alias_method_chain :construct_find_options!, :translation_shared
+      end
+
+      def reload_with_translation_shared
+        value = reload_without_translation_shared
+        if proxy_reflection.is_translation_shared?
+          proxy_owner.send(proxy_reflection.name)
+        else
+          value
+        end
       end
 
       def construct_find_options_with_translation_shared!(options)

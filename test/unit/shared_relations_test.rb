@@ -762,6 +762,14 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_nil ca.one_one_test_model
   end
 
+  def test_reload_with_translation_shared_associations
+    en = TestModel.create(:locale => 'en')
+    en.test_models << child = TestModel.create(:locale => 'en')
+    ca = en.translate('ca')
+    ca.save
+    assert_equal child, ca.test_models.reload.first
+  end
+
   def test_current_locale_should_have_preference_when_loading_relations
     en = TestModel.create(:locale => 'en')
     en.test_model = main = TestModel.create(:locale => 'en')

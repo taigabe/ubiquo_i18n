@@ -125,13 +125,36 @@ module UbiquoI18n
 
           # Instance method to find translations
           define_method('translations') do
-            self.class.translations(self)
+            self.class.send :with_exclusive_scope do
+              self.class.get_cached_translations(self)
+            end
           end
 
           # Returns an array containing self and its translations
           define_method('with_translations') do
             [self] + translations
           end
+
+          # contains all the items translations cached by id
+          cattr_accessor :cached_translations
+
+          # proxy for the +translations+ named scope that returns cached results
+          def self.get_cached_translations(instance)
+            return translations(instance) unless instance.id
+            self.cached_translations ||= {}
+            if cached = self.cached_translations[instance.id]
+              cached
+            else
+              self.cached_translations[instance.id] = translations(instance)
+            end
+          end
+
+          define_method 'clear_cached_translations' do
+            self.class.cached_translations = {}
+          end
+
+          after_save :clear_cached_translations
+          after_destroy :clear_cached_translations
 
           # Creates a new instance of the translatable class, using the common
           # values from an instance sharing the same content_id
@@ -928,6 +951,7 @@ module UbiquoI18n
           klass.alias_method_chain :update, :translatable
           klass.alias_method_chain :create, :translatable
           klass.alias_method_chain :create, :i18n_fields
+          klass.alias_method_chain :reload, :translations_cache_clear
         end
 
         # proxy to add a new content_id if empty on creation
@@ -1038,6 +1062,11 @@ module UbiquoI18n
               end
             end
           end
+        end
+
+        def reload_with_translations_cache_clear
+          self.clear_cached_translations if self.class.is_translatable?
+          reload_without_translations_cache_clear
         end
 
         def alert_translation_shared_not_supported(association_id, klass)

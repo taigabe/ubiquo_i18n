@@ -490,7 +490,7 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     translated_origin.inheritance_test_models = []
     assert_equal [], origin.reload.inheritance_test_models
 
-    translated_origin.inheritance_test_models = [translated_sti]
+    translated_origin.inheritance_test_models = [translated_sti.reload]
     assert_equal [sti_instance], origin.reload.inheritance_test_models
   end
 

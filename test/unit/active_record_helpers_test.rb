@@ -447,7 +447,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [], en_m3.translations
   end
 
-  def test_translations_uses_named_scope
+  def test_translations_uses_class_method
     instance = create_model(:content_id => 1, :locale => 'es')
     TestModel.expects(:translations)
     instance.translations
@@ -489,6 +489,17 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
 
     # restore
     TestModel.instance_variable_set('@translatable_scopes', [])
+  end
+
+  def test_translations_method_should_be_cached_per_instance
+    es = create_model(:content_id => 1, :locale => 'es')
+    en = es.translate('en')
+    en.save
+    assert_equal [en], es.translations
+    assert_equal [es], en.translations
+    TestModel.expects(:translations).never
+    assert_equal [en], es.translations
+    assert_equal [es], en.translations
   end
 
   def test_should_not_update_translations_if_update_fails

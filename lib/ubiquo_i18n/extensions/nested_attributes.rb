@@ -24,18 +24,23 @@ module UbiquoI18n
           attr_names.each do |association_name|
             if (reflection = reflect_on_association(association_name))
               define_method "#{association_name}_attributes_with_shared_translations=" do |attribute_collection|
-                attribute_set = normalized_attributes_for_nested_assignation(attribute_collection)
 
                 if reflection.is_translation_shared?
+                  attribute_set = if reflection.collection?
+                    # Use the current set of relations to avoid querying each one to the DB.
+                    # If the object is new, maybe we still don't have the correct content_id
+                    current_relations = new_record? ? nil : send(association_name)
+
+                    normalized_attributes_for_nested_assignation(attribute_collection)
+                  else
+                    # one-to-one association: attribute_collection is always a hash
+                    attribute_collection
+                  end
+
                   # When we set attributes to an existing object, check whether it is
                   # in the current locale. If not, create a new association to set
                   # there the attributes
-
-                  # Use the current set of relations to avoid querying each one
-                  # in the DB.
-                  # If the object is new, maybe we still don't have the correct content_id
-                  current_relations = new_record? ? nil : send(association_name)
-                  attribute_set.each do |attributes|
+                  [attribute_set].flatten.each do |attributes|
                     # only need to act for existing asset relations that we are updating
                     if (attributes['id'] || attributes[:id]) && !attributes['_destroy']
                       id_field = attributes['id'] ? 'id' : :id
@@ -48,8 +53,11 @@ module UbiquoI18n
                     end
                   end
                 end
-                send("#{association_name}_attributes_without_shared_translations=", attribute_set)
+
+                original_method = "#{association_name}_attributes_without_shared_translations="
+                send(original_method, attribute_set || attribute_collection)
               end
+
               alias_method_chain "#{association_name}_attributes=", :shared_translations
             end
           end

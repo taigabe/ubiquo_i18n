@@ -128,6 +128,7 @@ def create_test_model_backend
 
     has_many :inheritance_test_models, :translation_shared => true
     has_many :test_models, :translation_shared => false
+    accepts_nested_attributes_for :test_models
   end
 
   UnsharedRelatedTestModel.class_eval do
@@ -162,6 +163,7 @@ def create_test_model_backend
     translatable :independent
     belongs_to :one_one, :translation_shared => true, :foreign_key => 'one_one_test_model_id', :class_name => 'OneOneTestModel'
     has_one :one_one_test_model, :translation_shared => true
+    accepts_nested_attributes_for :one_one_test_model
   end
 
   InheritanceTestModel.class_eval do

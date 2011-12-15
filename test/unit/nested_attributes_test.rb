@@ -21,6 +21,32 @@ class Ubiquo::NestedAttributesTest < ActiveSupport::TestCase
     end
   end
 
+  test 'should update a translated relation in a one-to-one' do
+    Locale.current = 'ca'
+    ca = OneOneTestModel.create :locale => 'ca'
+    ca.one_one_test_model = shared = OneOneTestModel.create(:locale => 'ca')
+    en = ca.translate('en')
+    Locale.current = 'en'
+    en.one_one_test_model_attributes = { "id" => shared.id}
+    assert_difference 'OneOneTestModel.count', 2 do
+      en.save
+    end
+    assert_no_difference 'OneOneTestModel.count' do
+      en.one_one_test_model_attributes = { "id" => shared.translations.first.id}
+    end
+    assert_equal 1, shared.translations.count
+  end
+
+  test 'should not affect non-translation-shared relations' do
+    instance = RelatedTestModel.create
+    assert_nothing_raised do
+      instance.test_models_attributes = [{ "field1" => 1}]
+    end
+    assert_difference 'TestModel.count', 1 do
+      instance.save
+    end
+  end
+
   test 'should update a translated relation, and from another class' do
     Locale.current = 'ca'
     ca = TestModel.create :locale => 'ca'

@@ -13,12 +13,12 @@ class UbiquoI18n::Extensions::HelpersTest < ActionView::TestCase
 
   def test_locale_selector_deletes_page_by_default
     html_content = HTML::Document.new(locale_selector)
-    assert_select html_content.root, ['option[value=?]', /page.+/], false
+    assert_select html_content.root, ['option[value=?]', /.*page.+/], false
   end
 
   def test_locale_selector_accepts_keep_page_option
     html_content = HTML::Document.new(locale_selector(:keep_page => true))
-    assert_select html_content.root, ['option[value=?]', /page.+/], true
+    assert_select html_content.root, ['option[value=?]', /.*page.+/], true
   end
 
   def test_show_translations_for_a_existing_object

@@ -11,7 +11,7 @@ module UbiquoI18n
         # Returns the current locale or gets the default
         def current_locale
           if @current_locale.blank?
-            @current_locale = params[:locale] || ubiquo_config_call(:last_user_locale, { :context => :ubiquo_i18n }) || Locale.default
+            @current_locale = (params[:locale] rescue nil) || ubiquo_config_call(:last_user_locale, { :context => :ubiquo_i18n }) || Locale.default
             Locale.current = @current_locale
             ubiquo_config_call(:set_last_user_locale, { :context => :ubiquo_i18n, :locale => @current_locale })
           end

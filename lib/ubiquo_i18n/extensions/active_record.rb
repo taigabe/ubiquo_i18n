@@ -1040,6 +1040,7 @@ module UbiquoI18n
           return unless self.class.is_translatable?
           self.class.translating_relations do
             self.class.translation_shared_reflections.each do |name, reflection|
+              next if reflection.options[:through]
               unless reflection.macro == :belongs_to
                 # if this association was not loaded, we reset it after the work, else it's confusing to the user
                 original_association = self.send("#{name}_without_shared_translations")

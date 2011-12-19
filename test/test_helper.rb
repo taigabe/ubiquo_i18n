@@ -147,6 +147,7 @@ def create_test_model_backend
     translatable :field
     belongs_to :chain_test_model_b, :translation_shared => true
     has_many :chain_test_model_cs, :translation_shared => true
+    has_many :chain_test_model_as, :translation_shared => true, :through => :chain_test_model_cs, :source => :chain_test_model_a
   end
   ChainTestModelB.class_eval do
     translatable :field

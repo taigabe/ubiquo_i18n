@@ -47,6 +47,22 @@ class Ubiquo::NestedAttributesTest < ActiveSupport::TestCase
     end
   end
 
+  test 'should accept nested_attributes for a combination of transltable and not translatable classes' do
+    test_model = RelatedTestModel.create(:field1 => 'initial')
+    translatable_object = TranslatableRelatedTestModel.create(:shared_related_test_model => test_model)
+    assert_no_difference 'TranslatableRelatedTestModel.count' do
+      assert_no_difference 'RelatedTestModel.count' do
+        translatable_object.update_attributes(
+          :shared_related_test_model_attributes => {
+            :id => test_model.id,
+            :field1 => 'changed'
+          }
+        )
+      end
+    end
+    assert_equal 'changed', translatable_object.shared_related_test_model.field1
+  end
+
   test 'should update a translated relation, and from another class' do
     Locale.current = 'ca'
     ca = TestModel.create :locale => 'ca'

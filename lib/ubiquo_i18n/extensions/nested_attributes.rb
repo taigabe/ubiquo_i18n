@@ -45,7 +45,7 @@ module UbiquoI18n
                     if (attributes['id'] || attributes[:id]) && !attributes['_destroy']
                       id_field = attributes['id'] ? 'id' : :id
                       existing_relation = find_existing_relation(attributes[id_field], reflection, current_relations)
-                      if existing_relation && existing_relation.locale != Locale.current
+                      if reflection.klass.is_translatable? && existing_relation && existing_relation.locale != Locale.current
                         # setting this, the translation will be automatically created
                         attributes[id_field] = nil
                         attributes['content_id'] = existing_relation.content_id

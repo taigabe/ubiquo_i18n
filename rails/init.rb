@@ -32,4 +32,10 @@ Ubiquo::Plugin.register(:ubiquo_i18n, directory, config) do |config|
       nil
     end
   }
+
+  # used in the ubiquo_locale routing filter to know if should delete
+  # the used params to generate or recognize the url.
+  # This is useful for test environments.
+  # Test environments should have all the params to generate the url properly.
+  config.add :clean_url_params, lambda { !Rails.env.test? }
 end

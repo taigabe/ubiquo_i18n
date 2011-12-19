@@ -16,6 +16,7 @@ class RoutingTest < Test::Unit::TestCase
       options = { :controller => "ubiquo/locales",
                   :action     => "show",
                   :locale     => locale }
+
       expected = "/ubiquo/#{locale}/locales"
       assert_generation expected, options
     end
@@ -30,6 +31,6 @@ class RoutingTest < Test::Unit::TestCase
 
   def assert_generation(expected, options)
     result = ActionController::Routing::Routes.generate(options)
-    assert_equal expected, result
+    assert_match Regexp.new(expected), result
   end
 end

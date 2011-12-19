@@ -2,6 +2,8 @@ require "i18n"
 
 module RoutingFilter
   class UbiquoLocale < Filter
+    include Ubiquo::Extensions::ConfigCaller
+
     attr_writer :include_default_locale
 
     def initialize(options = {})
@@ -25,9 +27,11 @@ module RoutingFilter
     def around_generate(*args, &block)
       params = args.extract_options!
 
-      locale = params.delete(:locale)
+      locale = params[:locale]
       locale = default_locale if locale.nil?
       locale = nil unless valid_locale?(locale)
+
+      params.delete(:locale) if clean_url_params?
 
       args << params
 
@@ -89,6 +93,10 @@ module RoutingFilter
 
     def is_ubiquo?(path)
       extract_url(path).match(/^\/ubiquo/)
+    end
+
+    def clean_url_params?
+      ubiquo_config_call(:clean_url_params, { :context => :ubiquo_i18n })
     end
   end
 end

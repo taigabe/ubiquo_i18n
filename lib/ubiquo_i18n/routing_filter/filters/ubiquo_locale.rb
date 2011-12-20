@@ -16,40 +16,56 @@ module RoutingFilter
     def around_recognize(path, env, &block)
       if is_ubiquo?(path)
         locale = extract_segment!(locales_pattern, path)
-        yield.tap do |params|
+        block.call.tap do |params|
           params[:locale] ||= locale if locale
         end
       else
-        yield
+        block.call
       end
     end
 
     def around_generate(*args, &block)
       params = args.extract_options!
 
-      locale = params[:locale]
-      locale = default_locale if locale.nil?
-      locale = nil unless valid_locale?(locale)
+      if params[:controller] && is_ubiquo?(params[:controller], false)
+        locale = extract_locale_from_params(params)
 
-      params.delete(:locale) if clean_url_params?
+        args << params
 
-      args << params
-
-      yield.tap do |result|
-        if is_ubiquo?(result) && prepend_locale?(locale)
-          url        = extract_url!(result)
-          to_extract = %r(^/(ubiquo))
-          to_prepend = "ubiquo/#{locale}"
-
-          extract_segment!(to_extract, url)
-          prepend_segment!(url, to_prepend)
+        block.call.tap do |result|
+          localize_ubiquo_route(locale, result)
         end
+      else
+        args << params
 
-        result
+        block.call
       end
     end
 
     protected
+
+    def localize_ubiquo_route(locale, result)
+      if prepend_locale?(locale)
+        url        = extract_url!(result)
+        to_extract = %r(^/(ubiquo))
+        to_prepend = "ubiquo/#{locale}"
+
+        extract_segment!(to_extract, url)
+        prepend_segment!(url, to_prepend)
+      end
+
+      result
+    end
+
+    def extract_locale_from_params(params)
+      locale = params[:locale]
+      locale = nil unless valid_locale?(locale)
+      locale ||= default_locale
+
+      params.delete(:locale) if clean_url_params?
+
+      locale
+    end
 
     def include_default_locale?
       @include_default_locale
@@ -91,8 +107,12 @@ module RoutingFilter
       extract_url!(path).dup
     end
 
-    def is_ubiquo?(path)
-      extract_url(path).match(/^\/ubiquo/)
+    def is_ubiquo?(path, extrict = true)
+      if extrict
+        extract_url(path).match(/^\/ubiquo/)
+      else
+        extract_url(path).match(/^ubiquo/)
+      end
     end
 
     def clean_url_params?

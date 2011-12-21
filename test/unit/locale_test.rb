@@ -19,15 +19,15 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
       assert l.errors.on(:iso_code)
     end
   end
-  
+
   def test_should_require_unique_iso_code
     assert_difference 'Locale.count', 1 do
       l = create_locale(:iso_code => "my_code")
       assert !l.new_record?
-      
+
       l = create_locale(:iso_code => "my_code")
       assert l.errors.on(:iso_code)
-      
+
       l = create_locale(:iso_code => "MY_CODE")
       assert l.errors.on(:iso_code)
     end
@@ -49,4 +49,8 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
     assert_equal 'result', locale.humanized_name
   end
 
+  def test_should_cache_find_by_iso_code
+    Locale.expects(:find).once.returns([])
+    2.times { Locale.find_by_iso_code('ca') }
+  end
 end

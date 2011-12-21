@@ -209,7 +209,7 @@ module UbiquoI18n
 
                     # for each associated record, find its appropiate translation
                     # (if existing) and create the contents that it should have
-                    all_relationship_contents = [association_values].flatten.map do |related_element|
+                    all_relationship_contents = [association_values].flatten.reject(&:marked_for_destruction?).map do |related_element|
                       existing_translation = related_element.translations.locale(locale).first
                       existing_translation || related_element
                     end

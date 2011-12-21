@@ -611,6 +611,18 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal 1, ca.test_models.count
   end
 
+  def test_should_support_mark_for_destruction_objects
+    ca = TestModel.create(:locale => 'ca')
+    ca.test_models << TestModel.create(:locale => 'ca')
+    ca.test_models.first.mark_for_destruction
+
+    en = ca.translate('en')
+    en.save
+    ca.save
+    assert_equal 0, ca.test_models.reload.count
+    assert_equal 0, en.test_models.reload.count
+  end
+
   def test_should_accept_relations_from_other_locales
     ca = TestModel.create(:locale => 'ca')
     ca.test_models << TestModel.create(:locale => 'ca')

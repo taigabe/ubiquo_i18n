@@ -813,11 +813,21 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal m.content_id, bad_clone.content_id
   end
 
-  def test_update_a_translatable_mode_with_a_has_many_throught_relation
-    related_object = ChainTestModelA.new
-    model = ChainTestModelA.new(:chain_test_model_as => [related_object])
-    assert model.save
-    assert_equal [related_object], model.chain_test_model_as
+  # ActiveRecord.localized method tests
+
+  def test_localized_method_is_a_proxy_for_locale_with_current_locale_when_fallbacks_is_disabled
+    Locale.use_fallbacks = false
+    Locale.current = 'de'
+    assert_equal [:de], TestModel.localized.proxy_options[:locale_list].map(&:to_sym)
+  end
+
+  def test_localized_method_is_a_proxy_for_locale_with_current_locale_and_fallbacks_when_fallbacks_enabled
+    Locale.use_fallbacks = true
+    Locale.current = 'de'
+    assert_equal [:de, :all], TestModel.localized.proxy_options[:locale_list].map(&:to_sym)
+    I18n.fallbacks.map(:de => :ca, :ca => :es)
+    Locale.current = 'de-DE'
+    assert_equal [:"de-DE", :de, :ca, :es, :all], TestModel.localized.proxy_options[:locale_list].map(&:to_sym)
   end
 
 end

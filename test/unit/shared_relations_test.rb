@@ -822,6 +822,13 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     end
   end
 
+  def test_update_a_translatable_mode_with_a_has_many_throught_relation
+    related_object = ChainTestModelA.new
+    model = ChainTestModelA.new(:chain_test_model_as => [related_object])
+    assert model.save
+    assert_equal [related_object], model.chain_test_model_as
+  end
+
   private
 
   def create_test_model_with_relation_and_translation

@@ -4,6 +4,10 @@ rescue LoadError
   raise "Could not load the routing-filter gem. Install it with `gem install routing-filter` or add this line to your Gemfile: `gem 'routing-filter'`."
 end
 
+# "Touch" the Fallbacks backend module to ensure that the I18n.fallbacks method is defined.
+# To use or not this backend to fallback the ymls is a decision left to the end app.
+I18n::Backend::Fallbacks
+
 require 'ubiquo_i18n'
 
 config.after_initialize do

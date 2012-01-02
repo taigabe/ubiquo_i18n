@@ -12,5 +12,7 @@ ActiveRecord::Associations::ClassMethods.send(:include, UbiquoI18n::Extensions::
 Ubiquo::Extensions::Loader.append_include(:UbiquoController, UbiquoI18n::Extensions::LocaleChanger)
 Ubiquo::Extensions::Loader.append_include(:UbiquoController, UbiquoI18n::Extensions::LocaleUrlBuilder)
 Ubiquo::Extensions::Loader.append_helper(:UbiquoController, UbiquoI18n::Extensions::Helpers)
+Ubiquo::Extensions::Loader.append_include(:ApplicationController, UbiquoI18n::Extensions::LocaleUseFallbacks::Application)
+Ubiquo::Extensions::Loader.append_include(:UbiquoController, UbiquoI18n::Extensions::LocaleUseFallbacks::Ubiquo)
 
 ActionController::TestCase.send(:include, UbiquoI18n::Extensions::TestCase) if Rails.env.test?

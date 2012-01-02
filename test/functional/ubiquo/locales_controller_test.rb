@@ -48,4 +48,10 @@ class Ubiquo::LocalesControllerTest < ActionController::TestCase
 
   end
 
+  def test_should_have_use_fallbacks_to_true_as_its_an_ubiquo_controller
+    Locale.use_fallbacks = false
+    get :show
+    assert Locale.use_fallbacks
+  end
+
 end

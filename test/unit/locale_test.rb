@@ -4,6 +4,7 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
 
   def teardown
     Locale.current = nil
+    Locale.use_fallbacks = nil
   end
 
   def test_should_create_locale
@@ -50,7 +51,22 @@ class Ubiquo::LocaleTest < ActiveSupport::TestCase
   end
 
   def test_should_cache_find_by_iso_code
+    Locale.clear_cache
     Locale.expects(:find).once.returns([])
     2.times { Locale.find_by_iso_code('ca') }
   end
+
+  def test_should_use_fallback_attribute
+    assert !Locale.use_fallbacks
+    Locale.use_fallbacks = true
+    assert Locale.use_fallbacks
+    Locale.use_fallbacks = false
+    assert !Locale.use_fallbacks
+  end
+
+  def test_fallbacks_method_should_use_i18n_and_add_all
+    I18n.fallbacks = I18n::Locale::Fallbacks.new(:my_lang => :my_other)
+    assert_equal [:my_lang, :my_other, :all], Locale.fallbacks('my_lang')
+  end
+
 end

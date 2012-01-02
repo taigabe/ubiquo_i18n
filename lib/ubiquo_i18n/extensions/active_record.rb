@@ -95,6 +95,14 @@ module UbiquoI18n
             {:locale_scoped => true, :locale_list => locales}
           }
 
+          # Using localized is like using locale(current_locale, :all),
+          # but automatically using the possibly defined locale fallback list
+          # if the Locale.use_fallbacks flag is enabled
+          named_scope :localized, lambda{
+            locales = Locale.use_fallbacks ? Locale.fallbacks(Locale.current) : [Locale.current]
+            {:locale_scoped => true, :locale_list => locales}
+          }
+
           # usage:
           # find all items of one content: Model.content(1).first
           # find all items of some contents: Model.content(1,2,3)

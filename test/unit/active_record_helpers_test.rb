@@ -58,6 +58,10 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal %w{}, TestModel.locale('es').locale('ca').map(&:locale)
   end
 
+  def test_search_with_indirect_chained_locale_call
+    create_model(:content_id => 1, :locale => 'es')
+    assert_equal [], TestModel.locale('es').paginated_filtered_search('filter_locale' => 'ca').last
+  end
 
   def test_search_by_content
     create_model(:content_id => 1, :locale => 'es')

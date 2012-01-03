@@ -92,7 +92,7 @@ module UbiquoI18n
               ActiveSupport::Deprecation.warn('Use :all instead of :ALL in locale()', caller(5))
             end
 
-            {:locale_scoped => true, :locale_list => locales}
+            {:locale_list => locales}
           }
 
           # Using localized is like using locale(current_locale, :all),
@@ -100,7 +100,7 @@ module UbiquoI18n
           # if the Locale.use_fallbacks flag is enabled
           named_scope :localized, lambda{
             locales = Locale.use_fallbacks ? Locale.fallbacks(Locale.current) : [Locale.current]
-            {:locale_scoped => true, :locale_list => locales}
+            {:locale_list => locales}
           }
 
           # usage:
@@ -650,7 +650,7 @@ module UbiquoI18n
               alias_method_chain :find, :locale_filter
               alias_method_chain :count, :locale_filter
               alias_method_chain :with_scope, :locale_filter
-              VALID_FIND_OPTIONS << :locale_scoped << :locale_list << :unmerged_conditions
+              VALID_FIND_OPTIONS << :locale_list << :unmerged_conditions
             end
           end
 
@@ -710,12 +710,10 @@ module UbiquoI18n
         # when the results are actually delivered (not in call time)
         # Returns a hash with the resulting +options+ with the applied filter
         def apply_locale_filter(options)
-          apply_locale_filter = really_translatable_class.instance_variable_get(:@locale_scoped)
           locales = really_translatable_class.instance_variable_get(:@current_locale_list)
           # set this find as dispatched
-          really_translatable_class.instance_variable_set(:@locale_scoped, false)
           really_translatable_class.instance_variable_set(:@current_locale_list, [])
-          if apply_locale_filter
+          if locales.present?
             # build locale restrictions
             locales = merge_locale_list locales.reverse!
             locale_options = locales.extract_options!

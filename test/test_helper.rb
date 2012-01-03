@@ -97,6 +97,7 @@ def create_test_model_backend
     named_scope :field1_is_2, {:conditions => {:field1 => '2'}}
 
     translatable :field1
+    filtered_search_scopes
     has_many :related_test_models
     has_many :unshared_related_test_models
     has_many :shared_related_test_models, :class_name => "RelatedTestModel"

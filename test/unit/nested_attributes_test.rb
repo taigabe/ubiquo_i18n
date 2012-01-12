@@ -81,6 +81,44 @@ class Ubiquo::NestedAttributesTest < ActiveSupport::TestCase
     assert_equal 1, itm.translations.count
   end
 
+  test 'should deal correctly with _destroy' do
+    Locale.current = 'ca'
+    ca = TestModel.create :locale => 'ca'
+    ca.inheritance_test_models << itm = InheritanceTestModel.create(:locale => 'ca')
+    en = ca.translate('en')
+    Locale.current = 'en'
+    en.inheritance_test_models_attributes = [{ "id" => itm.id, "_destroy" => "0"}]
+    assert_difference 'TestModel.count' do
+      assert_difference 'InheritanceTestModel.count' do
+        en.save
+      end
+    end
+    assert_equal 1, itm.translations.count
+    en.inheritance_test_models_attributes = [{ "id" => itm.translations.first.id, "_destroy" => "1"}]
+    assert_no_difference 'TestModel.count' do
+      assert_difference 'InheritanceTestModel.count', -2 do
+        en.save
+      end
+    end
+    assert_equal [], en.reload.inheritance_test_models
+  end
+
+  test 'should deal correctly with _destroy when adding at the same time' do
+    Locale.current = 'ca'
+    ca = TestModel.create :locale => 'ca'
+    ca.inheritance_test_models << itm = InheritanceTestModel.create(:locale => 'ca')
+    Locale.current = 'en'
+    itm.translate('en').save
+    en = ca.translate('en')
+    en.save
+    en.inheritance_test_models_attributes = [{"_destroy" => ""},{ "id" => itm.translations.first.id, "_destroy" => "1"}]
+    assert_no_difference 'TestModel.count' do
+      assert_difference 'InheritanceTestModel.count', -2 +1 do
+        en.save
+      end
+    end
+  end
+
   protected
 
   def test_creation_of_translation

@@ -106,7 +106,7 @@ def create_test_model_backend
     has_many :inheritance_test_models, :dependent => :destroy
     has_many :through_related_test_models, :through => :inheritance_test_models, :source => :related_test_model
     has_many :test_models, :dependent => :destroy
-    accepts_nested_attributes_for :test_models, :inheritance_test_models
+    accepts_nested_attributes_for :test_models, :inheritance_test_models, :allow_destroy => true
     belongs_to :test_model
 
     share_translations_for :translatable_related_test_models, :test_models,

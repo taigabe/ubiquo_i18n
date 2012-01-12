@@ -25,7 +25,7 @@ module UbiquoI18n
             if (reflection = reflect_on_association(association_name))
               define_method "#{association_name}_attributes_with_shared_translations=" do |attribute_collection|
 
-                if reflection.is_translation_shared?
+                if reflection.is_translation_shared? && reflection.klass.is_translatable?
                   attribute_set = if reflection.collection?
                     # Use the current set of relations to avoid querying each one to the DB.
                     # If the object is new, maybe we still don't have the correct content_id
@@ -41,14 +41,17 @@ module UbiquoI18n
                   # in the current locale. If not, create a new association to set
                   # there the attributes
                   [attribute_set].flatten.each do |attributes|
-                    # only need to act for existing asset relations that we are updating
-                    if (attributes['id'] || attributes[:id]) && !attributes['_destroy']
+                    if (attributes['id'] || attributes[:id])
                       id_field = attributes['id'] ? 'id' : :id
                       existing_relation = find_existing_relation(attributes[id_field], reflection, current_relations)
-                      if reflection.klass.is_translatable? && existing_relation && existing_relation.locale != Locale.current
-                        # setting this, the translation will be automatically created
-                        attributes[id_field] = nil
-                        attributes['content_id'] = existing_relation.content_id
+                      if existing_relation && existing_relation.locale != Locale.current
+                        # We only need to act for relations that we intend to keep.
+                        # The others will be automatically gone on the propagation to translations
+                        unless has_destroy_flag?(attributes)
+                          # setting this, the translation will be automatically created
+                          attributes[id_field] = nil
+                          attributes['content_id'] = existing_relation.content_id
+                        end
                       end
                     end
                   end

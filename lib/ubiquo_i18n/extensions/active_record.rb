@@ -119,7 +119,8 @@ module UbiquoI18n
             @translatable_scopes.each do |scope|
                 scoped_conditions << (String === scope ? scope : scope.call(content))
             end
-             translation_condition = "#{self.table_name}.content_id = ? AND #{self.table_name}.locale != ?"
+            inequality_operator = content.locale ? '!=' : 'IS NOT'
+            translation_condition = "#{self.table_name}.content_id = ? AND #{self.table_name}.locale #{inequality_operator} ?"
             unless scoped_conditions.blank?
               translation_condition += ' AND ' + scoped_conditions.join(' AND ')
             end

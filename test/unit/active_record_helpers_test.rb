@@ -506,6 +506,13 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [es], en.translations
   end
 
+  def test_translations_method_when_locale_is_nil
+    es = create_model(:content_id => 1, :locale => 'es')
+    en = es.translate('en')
+    en.locale = nil
+    assert_equal [es], en.translations
+  end
+
   def test_should_not_update_translations_if_update_fails
     es_m1 = create_model(:content_id => 1, :locale => 'es', :field2 => 'val')
     ca_m1 = create_model(:content_id => 1, :locale => 'ca', :field2 => 'val')

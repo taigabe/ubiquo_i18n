@@ -25,7 +25,7 @@ module UbiquoI18n
             if (reflection = reflect_on_association(association_name))
               define_method "#{association_name}_attributes_with_shared_translations=" do |attribute_collection|
 
-                if reflection.is_translation_shared? && reflection.klass.is_translatable?
+                if reflection.is_translation_shared?(self) && reflection.klass.is_translatable?
                   attribute_set = if reflection.collection?
                     # Use the current set of relations to avoid querying each one to the DB.
                     # If the object is new, maybe we still don't have the correct content_id

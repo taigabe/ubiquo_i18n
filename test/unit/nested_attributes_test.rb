@@ -119,6 +119,19 @@ class Ubiquo::NestedAttributesTest < ActiveSupport::TestCase
     end
   end
 
+  test 'should create a translated relation when the object is new and initialize_translations_for is enabled' do
+    TestModel.unshare_translations_for :test_models
+    TestModel.initialize_translations_for :test_models
+
+    test_creation_of_translation do |tm|
+      [{ "id" => tm.id}]
+    end
+
+    # cleanup
+    TestModel.uninitialize_translations_for :test_models
+    TestModel.share_translations_for :test_models
+  end
+
   protected
 
   def test_creation_of_translation

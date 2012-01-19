@@ -17,12 +17,14 @@ class Ubiquo::InitializedSharedRelationsTest < ActiveSupport::TestCase
     reflection = TestModel.reflections[:translatable_related_test_models]
     assert !reflection.is_translation_shared?
     assert !reflection.is_translation_shared?(TestModel.new)
+    assert !reflection.is_translation_shared_on_initialize?
 
     TestModel.initialize_translations_for :translatable_related_test_models
 
     assert !reflection.is_translation_shared?
     assert reflection.is_translation_shared?(TestModel.new)
     assert !reflection.is_translation_shared?(TestModel.create)
+    assert reflection.is_translation_shared_on_initialize?
 
     # cleanup
     TestModel.uninitialize_translations_for :translatable_related_test_models

@@ -429,11 +429,14 @@ module UbiquoI18n
               # Marker to avoid recursive redefinition
               initialize_translation_shared association_id
 
-              # For has_many :throughs, if the end is :translation_shared but it's
-              # not translatable, then the middle needs to be :translation_shared
-              # to work as expected
+              # For has_many :throughs, the middle must have the same configuration
+              # as the end
               if reflection.has_many_through_translatable?
-                share_translations_for reflection.through_reflection.name
+                if reflection.is_translation_shared?
+                  share_translations_for reflection.through_reflection.name
+                elsif reflection.is_translation_shared_on_initialize?
+                  initialize_translations_for reflection.through_reflection.name
+                end
               end
             end
 

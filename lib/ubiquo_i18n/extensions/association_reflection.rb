@@ -25,6 +25,10 @@ module UbiquoI18n
             (options[:translation_shared_on_new] && record && record.new_record?)
         end
 
+        def is_translation_shared_on_initialize?
+          options[:translation_shared_on_new]
+        end
+
         # Marks this reflection as :translation_shared if +value+ says so.
         # +options+ can be one of:
         #   :only_new => :translation_shared +value+ will only be applied for new records

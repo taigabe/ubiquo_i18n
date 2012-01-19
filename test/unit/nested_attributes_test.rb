@@ -47,7 +47,7 @@ class Ubiquo::NestedAttributesTest < ActiveSupport::TestCase
     end
   end
 
-  test 'should accept nested_attributes for a combination of transltable and not translatable classes' do
+  test 'should accept nested_attributes for a combination of translatable and not translatable classes' do
     test_model = RelatedTestModel.create(:field1 => 'initial')
     translatable_object = TranslatableRelatedTestModel.create(:shared_related_test_model => test_model)
     assert_no_difference 'TranslatableRelatedTestModel.count' do
@@ -61,6 +61,31 @@ class Ubiquo::NestedAttributesTest < ActiveSupport::TestCase
       end
     end
     assert_equal 'changed', translatable_object.shared_related_test_model.field1
+  end
+
+  test 'should accept nested_attributes for and shared_translations for' do
+    Locale.current = 'ca'
+    test_model = TestModel.create(:field1 => 'initial')
+    shared_object = TestModel.create(:test_model => test_model)
+
+    assert_equal [shared_object], test_model.reload.test_models
+
+    # now we will delete the relation from the attributes
+    # and caused it is shared, test_model and translation will
+    # also lose it
+    # we don't have a way to actually delete it, as it should be done
+    # in the attribute assignement method, but can check that we
+    # have all the i18n information that would in that case be required
+    Locale.current = 'es'
+    attributes = test_model.attributes
+    attributes.merge!("test_models_attributes" => [], "id" => nil, "locale" => nil)
+
+    es_translation = TestModel.new
+    es_translation.expects(:test_models_attributes=).with do |param|
+      assert_equal test_model.content_id, es_translation.content_id
+      param == []
+    end
+    es_translation.attributes = attributes
   end
 
   test 'should update a translated relation, and from another class' do

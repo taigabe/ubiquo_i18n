@@ -7,6 +7,7 @@ module UbiquoI18n
         base.extend(ClassMethods)
         base.send :include, InstanceMethods
         base.send :alias_method_chain, :clone, :i18n_fields_ignore
+        base.send :alias_method_chain, :attributes=, :i18n_fields_assignement_advancement
       end
 
       module ClassMethods
@@ -988,6 +989,17 @@ module UbiquoI18n
           clone = clone_without_i18n_fields_ignore
           clone.content_id = nil if self.class.is_translatable?
           clone
+        end
+
+        def attributes_with_i18n_fields_assignement_advancement=(attributes)
+          if self.class.is_translatable?
+            fields_to_populate = %w{locale content_id}
+            attributes_to_apply = attributes.select { |key, value| fields_to_populate.include?(key.to_s) }
+            attributes_to_apply.each do |key, value|
+              write_attribute key.to_sym, value
+            end
+          end
+          send("attributes_without_i18n_fields_assignement_advancement=", attributes)
         end
 
         # Whenever we update existing content or create a translation, the expected behaviour is the following

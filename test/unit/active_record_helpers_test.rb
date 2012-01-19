@@ -824,6 +824,29 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal m.content_id, bad_clone.content_id
   end
 
+  def test_attributes_with_i18n_fields_assignement_advancement_assigning_fields_on_new
+    attributes = {:content_id => 10, :locale => 'ca'}
+    model = TestModel.new
+    model.expects(:attributes_without_i18n_fields_assignement_advancement=).with do |param|
+      # the attributes where assigned in the overrided method, not in ActiveRecord's standard
+      assert_equal 'ca', model.locale
+      assert_equal 10, model.content_id
+      param == attributes
+    end
+    model.attributes_with_i18n_fields_assignement_advancement = attributes
+  end
+
+  def test_attributes_with_i18n_fields_assignement_advancement_assigning_fields_in_assignement
+    attributes = {:content_id => 10, :locale => 'ca'}
+
+    # the method will do nothing
+    TestModel.any_instance.expects(:attributes_without_i18n_fields_assignement_advancement=).with(attributes)
+    model = TestModel.new(attributes)
+
+    assert_equal 'ca', model.locale
+    assert_equal 10, model.content_id
+  end
+
   # ActiveRecord.localized method tests
 
   def test_localized_method_is_a_proxy_for_locale_with_current_locale_when_fallbacks_is_disabled

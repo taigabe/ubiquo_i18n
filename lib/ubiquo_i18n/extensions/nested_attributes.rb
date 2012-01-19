@@ -45,9 +45,18 @@ module UbiquoI18n
                       id_field = attributes['id'] ? 'id' : :id
                       existing_relation = find_existing_relation(attributes[id_field], reflection, current_relations)
                       if existing_relation && existing_relation.locale != Locale.current
+                        # When we create a relation based on shared_on_initialize,
+                        # every relation of the record translations not present in
+                        # the attributes will be marked with the destroy flag,
+                        # even when with this type of relation they should be completely
+                        # independent. So we have to ignore the attributes and
+                        # not delete anything
+                        #
+                        if has_destroy_flag?(attributes) && reflection.is_translation_shared_on_initialize? && new_record?
+                          attributes.replace({})
                         # We only need to act for relations that we intend to keep.
                         # The others will be automatically gone on the propagation to translations
-                        unless has_destroy_flag?(attributes)
+                        elsif !has_destroy_flag?(attributes)
                           # setting this, the translation will be automatically created
                           attributes[id_field] = nil
                           attributes['content_id'] = existing_relation.content_id

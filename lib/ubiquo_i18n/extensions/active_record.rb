@@ -907,8 +907,10 @@ module UbiquoI18n
               ids = ids.select{ |id| content_ids[id.content_id].nil? ? content_ids[id.content_id] = id : false }.map{|id| id.id.to_i}
 
               # these are already factored in the new conditions
-              scope(:find)[:conditions] = nil
-              scope(:find)[:joins] = nil
+              if scope(:find)
+                scope(:find)[:conditions] = nil
+                scope(:find)[:joins] = nil
+              end
 
               if new_options
                 new_options[:conditions] = merge_conditions(new_options[:conditions], {:id => ids})

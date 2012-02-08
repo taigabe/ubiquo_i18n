@@ -794,7 +794,7 @@ module UbiquoI18n
                 if references_other_tables
                   content_id_query = from_and_joins
                   content_id_query << "WHERE #{mixed_conditions}" unless mixed_conditions.blank?
-                  id_extra_cond = merge_conditions(sql_locale_conditions, own_conditions)
+                  id_extra_cond = merge_conditions(own_conditions, sql_locale_conditions)
                   id_extra_cond += ' AND' if id_extra_cond.present?
 
                   new_options = options.merge(:conditions => own_conditions, :joins => nil)
@@ -876,7 +876,7 @@ module UbiquoI18n
                       content_id_query << "WHERE #{mixed_conditions}" unless mixed_conditions.blank?
                       joins_sql = nil # already applied
                       new_options = options.merge(:conditions => own_conditions, :joins => nil)
-                      id_extra_cond = merge_conditions(sql_locale_conditions, own_conditions)
+                      id_extra_cond = merge_conditions(own_conditions, sql_locale_conditions)
                       id_extra_cond += ' AND' if id_extra_cond.present?
                       "#{id_extra_cond} #{tbl}.content_id IN ("+
                           "SELECT #{tbl}.content_id #{content_id_query})"

@@ -292,6 +292,17 @@ module UbiquoI18n
 
         def initialize_translations_for(*associations)
           share_translations_for(associations, {:only_new => true})
+          associations.each do |association|
+            ["assign_nested_attributes_for_collection_association"].each do |method|
+              unless self.method_defined?("#{method}_with_initialization")
+                define_method("#{method}_with_initialization") do |*params|
+                  association_initialized!(params.first)
+                  send("#{method}_without_initialization", *params)
+                end
+                alias_method_chain("#{method}", :initialization)
+              end
+            end
+          end
         end
 
         def share_translations_for(*associations)
@@ -965,6 +976,14 @@ module UbiquoI18n
           klass.alias_method_chain :create, :translatable
           klass.alias_method_chain :create, :i18n_fields
           klass.alias_method_chain :reload, :translations_cache_clear
+        end
+
+        def is_association_initialized?(association)
+          self.instance_variable_get("@#{association}_initialized")
+        end
+
+        def association_initialized!(association)
+          self.instance_variable_set("@#{association}_initialized", true)
         end
 
         # proxy to add a new content_id if empty on creation

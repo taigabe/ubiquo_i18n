@@ -38,8 +38,9 @@ class Ubiquo::InitializedSharedRelationsTest < ActiveSupport::TestCase
     ca = en.translate('ca')
     assert_equal [], ca.translatable_related_test_models
     TestModel.initialize_translations_for :translatable_related_test_models
+    ca = en.translate('ca')
     assert_equal [related], ca.translatable_related_test_models
-    ca.save
+    assert ca.save
     assert_equal [related], ca.reload.translatable_related_test_models
     assert_equal [], en.reload.translatable_related_test_models
   end

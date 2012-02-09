@@ -69,7 +69,7 @@ module UbiquoI18n
                 original_method = "#{association_name}_attributes_without_shared_translations="
                 send(original_method, attribute_set || attribute_collection)
               end
-
+              
               alias_method_chain "#{association_name}_attributes=", :shared_translations
             end
           end

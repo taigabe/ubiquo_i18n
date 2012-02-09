@@ -21,8 +21,13 @@ module UbiquoI18n
         # Returns true if +record+ has the reflection contents shared with its translations
         # If there is no +record+, returns the general use case
         def is_translation_shared?(record = nil)
-          options[:translation_shared] ||
-            (options[:translation_shared_on_new] && record && record.new_record?)
+          options[:translation_shared] || can_be_initialized?(record)
+        end
+
+        def can_be_initialized?(record, ignore_association_loading = false)
+          if is_translation_shared_on_initialize? && record && record.new_record?
+            ignore_association_loading || !record.is_association_initialized?(self.name)
+          end
         end
 
         def is_translation_shared_on_initialize?

@@ -296,7 +296,14 @@ module UbiquoI18n
             ["assign_nested_attributes_for_collection_association"].each do |method|
               unless self.method_defined?("#{method}_with_initialization")
                 define_method("#{method}_with_initialization") do |*params|
-                  association_initialized!(params.first)
+                  # It's being fully assigned, so should no longer return results as an initialized_shared
+                  current_association = params.first
+                  association_initialized!(current_association)
+                  # If these shared results were already loaded, discard them
+                  if self.is_association_initialized?(current_association)
+                    self.send(current_association).reset
+                  end
+                  # Now perform the assignation as usual
                   send("#{method}_without_initialization", *params)
                 end
                 alias_method_chain("#{method}", :initialization)

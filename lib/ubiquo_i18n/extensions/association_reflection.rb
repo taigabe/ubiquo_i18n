@@ -56,7 +56,8 @@ module UbiquoI18n
             reflection = self
             active_record.send(:define_method, "#{method_name}_with_shared_translations") do
               reflection.propagate_dependent_option_with_shared_translations(self) do
-                send(reflection.name).reset
+                # TODO: Check why this reload is needed
+                send(reflection.name).reload
                 send("#{method_name}_without_shared_translations")
               end
             end

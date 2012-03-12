@@ -13,18 +13,18 @@ module RoutingFilter
       super
     end
 
-    def around_recognize(path, env, &block)
+    def around_recognize(path, env)
       if is_ubiquo?(path)
         locale = extract_segment!(locales_pattern, path)
-        block.call.tap do |params|
+        yield.tap do |params|
           params[:locale] ||= locale if locale
         end
       else
-        block.call
+        yield
       end
     end
 
-    def around_generate(*args, &block)
+    def around_generate(*args)
       params = args.extract_options!
 
       if params[:controller] && is_ubiquo?(params[:controller], false)
@@ -32,13 +32,13 @@ module RoutingFilter
 
         args << params
 
-        block.call.tap do |result|
+        yield.tap do |result|
           localize_ubiquo_route(locale, result)
         end
       else
         args << params
 
-        block.call
+        yield
       end
     end
 
@@ -80,7 +80,11 @@ module RoutingFilter
     end
 
     def locales_pattern
-      @locales_pattern ||= %r(/(#{locales.map { |l| Regexp.escape(l.to_s) }.join('|')})(?=/|$))
+      @locales_pattern ||= begin
+        _locales = locales.map { |l| Regexp.escape(l.to_s) }.join('|')
+
+        %r(/(#{_locales})(?=/|$))
+      end
     end
 
     def valid_locale?(locale)

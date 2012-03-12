@@ -2,6 +2,23 @@ require File.dirname(__FILE__) + "/../test_helper.rb"
 
 class UbiquoI18n::Extensions::HelpersTest < ActionView::TestCase
 
+  def setup
+    %w(es en ca).map do |locale|
+      options = {
+        :iso_code     => locale,
+        :is_active    => true,
+        :english_name => locale,
+        :native_name  => locale
+      }
+
+      create_locale(options)
+    end
+  end
+
+  def teardown
+    Locale.delete_all
+  end
+
   def test_locale_selector_displays_select
     html_content = HTML::Document.new(locale_selector)
     assert_select html_content.root, "form" do

@@ -1019,7 +1019,7 @@ module UbiquoI18n
           clone
         end
 
-        def attributes_with_i18n_fields_assignement_advancement=(attributes)
+        def attributes_with_i18n_fields_assignement_advancement=(attributes, guard_protected_attributes = true)
           if self.class.is_translatable?
             fields_to_populate = %w{locale content_id}
             attributes_to_apply = attributes.select { |key, value| fields_to_populate.include?(key.to_s) }
@@ -1027,7 +1027,7 @@ module UbiquoI18n
               write_attribute key.to_sym, value
             end
           end
-          send("attributes_without_i18n_fields_assignement_advancement=", attributes)
+          send("attributes_without_i18n_fields_assignement_advancement=", attributes, guard_protected_attributes)
         end
 
         # Whenever we update existing content or create a translation, the expected behaviour is the following

@@ -495,17 +495,6 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     TestModel.instance_variable_set('@translatable_scopes', [])
   end
 
-  def test_translations_method_should_be_cached_per_instance
-    es = create_model(:content_id => 1, :locale => 'es')
-    en = es.translate('en')
-    en.save
-    assert_equal [en], es.translations
-    assert_equal [es], en.translations
-    TestModel.expects(:translations).never
-    assert_equal [en], es.translations
-    assert_equal [es], en.translations
-  end
-
   def test_translations_method_when_locale_is_nil
     es = create_model(:content_id => 1, :locale => 'es')
     en = es.translate('en')
@@ -827,11 +816,11 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
   def test_attributes_with_i18n_fields_assignement_advancement_assigning_fields_on_new
     attributes = {:content_id => 10, :locale => 'ca'}
     model = TestModel.new
-    model.expects(:attributes_without_i18n_fields_assignement_advancement=).with do |param|
+    model.expects(:attributes_without_i18n_fields_assignement_advancement=).with do |param_attrs, guard|
       # the attributes where assigned in the overrided method, not in ActiveRecord's standard
       assert_equal 'ca', model.locale
       assert_equal 10, model.content_id
-      param == attributes
+      param_attrs == attributes
     end
     model.attributes_with_i18n_fields_assignement_advancement = attributes
   end
@@ -840,7 +829,7 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     attributes = {:content_id => 10, :locale => 'ca'}
 
     # the method will do nothing
-    TestModel.any_instance.expects(:attributes_without_i18n_fields_assignement_advancement=).with(attributes)
+    TestModel.any_instance.expects(:attributes_without_i18n_fields_assignement_advancement=).with(attributes, true)
     model = TestModel.new(attributes)
 
     assert_equal 'ca', model.locale

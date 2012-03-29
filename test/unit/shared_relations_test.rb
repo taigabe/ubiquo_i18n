@@ -847,6 +847,38 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert_equal [related_object], model.chain_test_model_as
   end
 
+  def test_should_not_nullify_belongs_to_associations_when_using_more_than_two_languages
+    InheritanceTestModel.delete_all    
+    Locale.current = 'ca'    
+    model = InheritanceTestModel.create
+    related = InheritanceTestModel.create
+    model.children << related
+    model.save
+    assert_equal [related], model.children
+
+    # model will be translated in 4 locales
+    %w[es en de].each do |locale|
+      Locale.current = locale
+      t = model.translate(locale)
+      assert t.save
+    end
+    # we don't have a translation for the related object in german
+    %w[es en].each do |locale|
+      Locale.current = locale
+      t = related.translate(locale)
+      assert t.save
+    end
+
+    # make each one points to the correct locale, if this is not fixed,
+    # a register with parent_id null will be circularily changing
+    %w[ca es en de].each do |locale|
+      model.in_locale(locale).save
+    end
+
+    assert related.in_locale('en').parent_id
+    assert_equal 4, InheritanceTestModel.count(:conditions => ["parent_id IS NULL"])
+  end
+
   private
 
   def create_test_model_with_relation_and_translation

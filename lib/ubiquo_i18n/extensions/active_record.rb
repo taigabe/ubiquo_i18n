@@ -142,6 +142,9 @@ module UbiquoI18n
 
           # Returns an array containing self and its translations
           define_method('with_translations') do
+            with_translations = [self] + translations.to_a.sort_by(&:id)
+            with_translations = with_translations.sort_by(&:id) unless self.new_record?
+            with_translations
             [self] + translations
           end
 
@@ -346,6 +349,8 @@ module UbiquoI18n
                   target = association.proxy_target
                   target.clear
 
+                  extra_locales_in_order = self.class.is_translatable? ? (Array(origin).map(&:locale) - [locale]) : []
+
                   if reflection.has_many_through_translatable?
                     target.concat(contents.map(&reflection.source_reflection.name))
                   else
@@ -354,7 +359,7 @@ module UbiquoI18n
                     # now "localize" the contents
                     translations_to_do = {}
                     target.each do |element|
-                      if !element.in_locale?(locale) && (translation = element.in_locale(locale))
+                      if !element.in_locale?(locale) && (translation = element.in_locale(locale, *extra_locales_in_order))
                         translations_to_do[element] = translation
                       end
                     end

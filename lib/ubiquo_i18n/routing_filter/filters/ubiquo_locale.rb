@@ -26,26 +26,17 @@ module RoutingFilter
 
     def around_generate(*args)
       params = args.extract_options!
+      locale = extract_locale_from_params(params)
 
-      if params[:controller] && is_ubiquo?(params[:controller], false)
-        locale = extract_locale_from_params(params)
-
-        args << params
-
-        yield.tap do |result|
-          localize_ubiquo_route(locale, result)
-        end
-      else
-        args << params
-
-        yield
+      yield.tap do |result|
+        localize_ubiquo_route(locale, result)
       end
     end
 
     protected
 
     def localize_ubiquo_route(locale, result)
-      if prepend_locale?(locale)
+      if prepend_locale?(locale, result)
         url        = extract_url!(result)
         to_extract = %r(^/(ubiquo))
         to_prepend = "ubiquo/#{locale}"
@@ -96,11 +87,11 @@ module RoutingFilter
     end
 
     def default_locale
-      @default_locale ||= ::Locale.default.to_s.to_sym
+      ::Locale.current.to_s.to_sym
     end
 
-    def prepend_locale?(locale)
-      locale && (include_default_locale? || !default_locale?(locale))
+    def prepend_locale?(locale, result = '')
+      locale && (include_default_locale? || !default_locale?(locale)) && is_ubiquo?(result)
     end
 
     def extract_url!(path)

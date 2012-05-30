@@ -208,15 +208,7 @@ module UbiquoI18n
 
                   elsif record
 
-                    # If record is not translatable, we can only do something if
-                    # the reflection is a belongs_to, because else we would be
-                    # changing a relation that does not belong to us
-                    if reflection.macro == :belongs_to
-                      # we simply copy the attribute value
-                      all_relationship_contents = [association_values]
-                    else
-                      alert_translation_shared_not_supported(association_id, record.class)
-                    end
+                    all_relationship_contents = [association_values].flatten.reject(&:marked_for_destruction?)
 
                   elsif reflection.macro == :belongs_to
                      # no record means that we are removing an association, so the new content is nil
@@ -321,9 +313,6 @@ module UbiquoI18n
                 association.inspect
 
                 if is_collection
-                  unless reflection.is_translatable?
-                    alert_translation_shared_not_supported(association_id, reflection.klass)
-                  end
 
                   # In a has_many :through to an untranslatable model,
                   # we operate from the intermediate table
@@ -341,7 +330,7 @@ module UbiquoI18n
                   Array(origin).each do |translation|
                     elements = translation.send(association_to_retrieve)
                     elements.each do |element|
-                      contents << element unless element.content_id && contents.map(&:content_id).include?(element.content_id)
+                      contents << element unless element.class.is_translatable? && element.content_id && contents.map(&:content_id).include?(element.content_id)
                     end
                   end
 
@@ -359,7 +348,7 @@ module UbiquoI18n
                     # now "localize" the contents
                     translations_to_do = {}
                     target.each do |element|
-                      if !element.in_locale?(locale) && (translation = element.in_locale(locale, *extra_locales_in_order))
+                      if element.class.is_translatable? && !element.in_locale?(locale) && (translation = element.in_locale(locale, *extra_locales_in_order))
                         translations_to_do[element] = translation
                       end
                     end

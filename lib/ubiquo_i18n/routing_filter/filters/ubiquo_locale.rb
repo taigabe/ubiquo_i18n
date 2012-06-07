@@ -79,7 +79,7 @@ module RoutingFilter
     end
 
     def valid_locale?(locale)
-      locale && locales.include?(locale.to_s.to_sym)
+      locale.present? && locales.include?(locale.to_s.to_sym)
     end
 
     def default_locale?(locale)

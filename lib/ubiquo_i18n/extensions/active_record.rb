@@ -353,8 +353,7 @@ module UbiquoI18n
                       end
                     end
                     translations_to_do.each_pair do |foreign, translation|
-                      target.delete foreign
-                      target << translation
+                      target[target.index(foreign)] = translation
                     end
                   end
 

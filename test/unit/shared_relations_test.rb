@@ -12,9 +12,14 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
 
   def test_copy_shared_relations_simple_has_many_case
     TestModel.share_translations_for :unshared_related_test_models
-    assert_raise RuntimeError do
-      create_model
-    end
+    ca = create_model(:locale => 'ca')
+    ca.unshared_related_test_models << UnsharedRelatedTestModel.create(:field1 => '1')
+    ca.unshared_related_test_models << UnsharedRelatedTestModel.create(:field1 => '2')
+    en = ca.translate('en')
+
+    assert_equal 2, en.unshared_related_test_models.size
+    assert_equal 2, UnsharedRelatedTestModel.count
+
     TestModel.unshare_translations_for :unshared_related_test_models
   end
 
@@ -325,17 +330,17 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     parent_es.save
     child_ca = create_model(:locale => 'ca')
     parent_ca.test_models << child_ca
-    
+
     # Delete current parent, child model should point to the other translation
     parent_ca.destroy
     child_ca.reload
     assert_equal parent_es, child_ca.test_model
-    
+
     # Only parent translation available destroy, child record should be also destroyed
     parent_es.destroy
     assert !child_ca.class.find_by_id(child_ca.id)
   end
-  
+
   def test_dependent_destroy_in_has_many_does_not_delete_things_while_translations_exist
     test_dependent_in_has_many_does_not_delete_things_while_translations_exist(:destroy)
   end

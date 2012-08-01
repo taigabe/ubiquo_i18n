@@ -880,6 +880,14 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
       model.in_locale(locale).save
     end
 
+    # There was a bug that would make put 'es' relations to the 'de' model
+    # when the 'es' model is saved, if the foreign_keys are not pointing to
+    # the same locale. They should be 'ca', since the order should not
+    # be arbitrary, and ca.id < es.id (see with_translations method)
+    related.update_attribute :parent_id, model.in_locale('de').id
+    Locale.current = 'es'
+    model.in_locale('es').save
+
     assert related.in_locale('en').parent_id
     assert_equal 4, InheritanceTestModel.count(:conditions => ["parent_id IS NULL"])
   end

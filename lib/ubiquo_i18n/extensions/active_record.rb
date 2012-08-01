@@ -145,7 +145,6 @@ module UbiquoI18n
             with_translations = [self] + translations.to_a.sort_by(&:id)
             with_translations = with_translations.sort_by(&:id) unless self.new_record?
             with_translations
-            [self] + translations
           end
 
           # Creates a new instance of the translatable class, using the common

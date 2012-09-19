@@ -326,6 +326,28 @@ class Ubiquo::ActiveRecordHelpersTest < ActiveSupport::TestCase
     assert_equal [model], TestModel.locale('es', :all).scope_for_test(1).all
   end
 
+  def test_search_by_locale_with_multiple_composed_scopes_using_scoped
+    model = create_model(:field1 => 1)
+    TestModel.class_eval do
+      named_scope :scope_one, lambda{|id|
+        {
+          :joins => 'INNER JOIN related_test_models ON related_test_models.test_model_id = test_models.id',
+          :conditions => ["related_test_models.field1 = ?", id.to_s]
+        }
+      }
+      named_scope :scope_two, lambda{|id|
+        {
+          :conditions => ["test_models.field1 = ?", id.to_s]
+        }
+      }
+    end
+    create_related_model(:test_model => model, :field1 => '1')
+    create_related_model(:test_model => model, :field1 => '2')
+
+    stored_scopes = TestModel.locale('ca', :all).scope_one(1).scope_two(1)
+    assert_equal 1, stored_scopes.scoped({}).count
+  end
+
   def test_search_by_locale_with_limit
     20.times do
       create_model(:locale => 'ca', :field1 => '1')

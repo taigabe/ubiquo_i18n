@@ -598,7 +598,7 @@ module UbiquoI18n
         # translation or for all translations
         def with_scope_with_locale_filter(method_scoping = {}, action = :merge, &block)
           if (method_scoping[:find][:conditions] rescue false)
-            method_scoping[:find][:unmerged_conditions] = method_scoping[:find][:conditions]
+            method_scoping[:find][:unmerged_conditions] ||= method_scoping[:find][:conditions]
           end
           with_scope_without_locale_filter(method_scoping, action, &block)
         end

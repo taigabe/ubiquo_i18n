@@ -145,7 +145,7 @@ def create_test_model_backend
     has_many :inheritance_test_models, :translation_shared => true
     has_many :related_test_models
     belongs_to :shared_related_test_model, :translation_shared => true, :class_name => 'RelatedTestModel'
-    accepts_nested_attributes_for :shared_related_test_model
+    accepts_nested_attributes_for :shared_related_test_model, :allow_destroy => true
   end
 
   ChainTestModelA.class_eval do

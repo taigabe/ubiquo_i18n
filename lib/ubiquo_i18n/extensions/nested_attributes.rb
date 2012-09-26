@@ -64,7 +64,7 @@ module UbiquoI18n
                           end
                         end
                       else
-                        existing_relation.update_attributes(attributes)
+                        existing_relation.update_attributes(attributes.except('_destroy'))
                       end
                     end
                   end

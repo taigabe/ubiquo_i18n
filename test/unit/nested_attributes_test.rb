@@ -128,6 +128,34 @@ class Ubiquo::NestedAttributesTest < ActiveSupport::TestCase
     assert_equal [], en.reload.inheritance_test_models
   end
 
+  test 'should deal correctly with _destroy with untranslatable models' do
+    test_model = RelatedTestModel.create(:field1 => 'initial')
+    translatable_object = TranslatableRelatedTestModel.create(:shared_related_test_model => test_model)
+    assert_no_difference 'TranslatableRelatedTestModel.count' do
+      assert_no_difference 'RelatedTestModel.count' do
+        translatable_object.update_attributes(
+          :shared_related_test_model_attributes => {
+            :id => test_model.id,
+            :field1 => 'changed',
+            '_destroy' => '0'
+          }
+        )
+      end
+    end
+    assert_equal 'changed', translatable_object.shared_related_test_model.field1
+    assert_no_difference 'TranslatableRelatedTestModel.count' do
+      assert_difference 'RelatedTestModel.count', -1 do
+        translatable_object.update_attributes(
+          :shared_related_test_model_attributes => {
+            :id => test_model.id,
+            :field1 => 'final',
+            '_destroy' => '1'
+          }
+        )
+      end
+    end
+  end
+
   test 'should deal correctly with _destroy when adding at the same time' do
     Locale.current = 'ca'
     ca = TestModel.create :locale => 'ca'

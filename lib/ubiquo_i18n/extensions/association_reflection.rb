@@ -71,6 +71,7 @@ module UbiquoI18n
           # When we really want to delete associated records? when these are
           # not being used by any translations. This means that either +record+
           # has no translations, or that its translations use a different set of records
+          return true unless record.respond_to?(:translations) 
           all_records = record.translations.map do |translation|
             translation.without_current_locale(translation.locale) do
               translation.send(name)
@@ -96,7 +97,9 @@ module UbiquoI18n
         def update_foreign_keys_to_point_another_translation record
           record.without_current_locale do
             associated = record.send(name)
-            associated.update_all({primary_key_name => record.translations.first.id})
+            if record.respond_to?(:translations)
+              associated.update_all({primary_key_name => record.translations.first.id})
+            end
           end
         end
       end

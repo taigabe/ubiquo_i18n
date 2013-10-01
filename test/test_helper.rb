@@ -20,7 +20,7 @@ def create_translatable_related_model(options = {})
   TranslatableRelatedTestModel.create(options)
 end
 
-%w{TestModel RelatedTestModel UnsharedRelatedTestModel TranslatableRelatedTestModel ChainTestModelA ChainTestModelB ChainTestModelC OneOneTestModel CallbackTestModel}.each do |c|
+%w{TestModel RelatedTestModel UnsharedRelatedTestModel TranslatableRelatedTestModel ChainTestModelA ChainTestModelB ChainTestModelC OneOneTestModel CallbackTestModel NormalParentModel NormalChildModel}.each do |c|
   Object.const_set(c, Class.new(ActiveRecord::Base)) unless Object.const_defined? c
 end
 
@@ -55,6 +55,13 @@ def create_test_model_backend
     t.string :common
     t.integer :lock_version, :default => 0
   end unless conn.tables.include?('translatable_related_test_models')
+
+  conn.create_table :normal_parent_models do |t|
+  end unless conn.tables.include?('normal_parent_models')
+
+  conn.create_table :normal_child_models do |t|
+    t.integer :normal_parent_model_id
+  end unless conn.tables.include?('normal_child_models')
 
   conn.create_table :chain_test_model_as, :translatable => true do |t|
     t.integer :chain_test_model_b_id
@@ -146,6 +153,14 @@ def create_test_model_backend
     has_many :related_test_models
     belongs_to :shared_related_test_model, :translation_shared => true, :class_name => 'RelatedTestModel'
     accepts_nested_attributes_for :shared_related_test_model, :allow_destroy => true
+  end
+  
+  NormalParentModel.class_eval do
+    has_many :normal_child_models, :dependent => :nullify
+  end
+
+  NormalChildModel.class_eval do
+    belongs_to :normal_parent_model    
   end
 
   ChainTestModelA.class_eval do

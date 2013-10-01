@@ -891,6 +891,14 @@ class Ubiquo::SharedRelationsTest < ActiveSupport::TestCase
     assert related.in_locale('en').parent_id
     assert_equal 4, InheritanceTestModel.count(:conditions => ["parent_id IS NULL"])
   end
+  
+  def test_nullify_dependent_associations_on_non_translatable_models
+    child = NormalChildModel.new
+    parent = NormalParentModel.create(:normal_child_models => [child])
+    assert parent.destroy
+    child.reload
+    assert !child.normal_parent_model_id
+  end
 
   private
 

@@ -36,7 +36,7 @@ class UbiquoLocaleTest < Test::Unit::TestCase
     end
 
     # in this tests, allways clean the url params
-    Ubiquo::Config.context(:ubiquo_i18n).set(:clean_url_params, lambda { true })
+    Ubiquo::Settings.context(:ubiquo_i18n).set(:clean_url_params, lambda { true })
 
     @ubiquo_params = { :controller => 'ubiquo/some', :action => 'index' }
     @public_params = { :controller => 'some', :action => 'index' }

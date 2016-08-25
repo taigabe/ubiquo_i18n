@@ -18,11 +18,11 @@ Ubiquo::Plugin.register(:ubiquo_i18n, directory, config) do |config|
 
   config.add :locales_default_order_field, "native_name"
   config.add :locales_default_sort_order, "ASC"
-  config.add :locales_access_control, lambda{
+  config.add :locales_access_control, lambda{ |_|
     access_control :DEFAULT => nil
   }
 
-  config.add :last_user_locale, lambda{
+  config.add :last_user_locale, lambda{ |_|
     current_ubiquo_user.blank? ? nil : current_ubiquo_user.last_locale rescue nil
   }
 
@@ -41,5 +41,5 @@ Ubiquo::Plugin.register(:ubiquo_i18n, directory, config) do |config|
   # the used params to generate or recognize the url.
   # This is useful for test environments.
   # Test environments should have all the params to generate the url properly.
-  config.add :clean_url_params, lambda { !Rails.env.test? }
+  config.add :clean_url_params, lambda { |_| !Rails.env.test? }
 end
